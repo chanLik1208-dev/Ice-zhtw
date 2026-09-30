@@ -23,6 +23,7 @@ jobs:
             CODE_SIGN_IDENTITY=- \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM= \
+            ENABLE_HARDENED_RUNTIME=NO \
             build
       - name: Package
         run: |
