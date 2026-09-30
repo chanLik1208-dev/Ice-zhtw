@@ -226,6 +226,18 @@ final class ControlItem {
             }
             .store(in: &c)
 
+        // On macOS 26 and later, the window server reports all menu bar item
+        // windows as owned by Control Center. Record the frame of our window,
+        // including while it's off screen, so it can still be identified.
+        window?.publisher(for: \.frame)
+            .sink { [weak self] frame in
+                guard let self else {
+                    return
+                }
+                MenuBarItemSourceResolver.updateOwnItemFrame(frame, title: identifier.rawValue)
+            }
+            .store(in: &c)
+
         if let appState {
             appState.settingsManager.generalSettingsManager.$showIceIcon
                 .receive(on: DispatchQueue.main)
@@ -425,7 +437,7 @@ final class ControlItem {
         let menu = NSMenu(title: "Ice")
 
         let settingsItem = NSMenuItem(
-            title: "Ice Settings…",
+            title: String(localized: "Ice Settings…"),
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )
@@ -435,7 +447,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let searchItem = NSMenuItem(
-            title: "Search Menu Bar Items",
+            title: String(localized: "Search Menu Bar Items"),
             action: #selector(showSearchPanel),
             keyEquivalent: ""
         )
@@ -462,7 +474,9 @@ final class ControlItem {
                 continue
             }
             let item = NSMenuItem(
-                title: "\(section.isHidden ? "Show" : "Hide") the \(name.displayString) Section",
+                title: section.isHidden
+                    ? String(localized: "Show the \(name.displayString) Section")
+                    : String(localized: "Hide the \(name.displayString) Section"),
                 action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )
@@ -494,7 +508,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates…",
+            title: String(localized: "Check for Updates…"),
             action: #selector(checkForUpdates),
             keyEquivalent: ""
         )
@@ -504,7 +518,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit Ice",
+            title: String(localized: "Quit Ice"),
             action: #selector(NSApp.terminate),
             keyEquivalent: "q"
         )

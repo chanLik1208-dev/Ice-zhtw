@@ -72,7 +72,7 @@ struct CustomGradientPicker: View {
     private var gradientView: some View {
         if gradient.stops.isEmpty {
             Rectangle()
-                .fill(.white.gradient.opacity(0.1))
+                .fill(Color.white.opacity(0.1).gradient)
                 .blendMode(.softLight)
         } else {
             gradient

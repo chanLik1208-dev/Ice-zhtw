@@ -15,6 +15,16 @@ struct MenuBarItem {
     /// The menu bar item info associated with this item.
     let info: MenuBarItemInfo
 
+    /// The process identifier of the application that created the item.
+    ///
+    /// Before macOS 26, this is the same as ``ownerPID``. Starting with
+    /// macOS 26, item windows are owned by Control Center, and this is
+    /// resolved separately.
+    let sourcePID: pid_t
+
+    /// The title of the item.
+    let title: String?
+
     /// The identifier of the item's window.
     var windowID: CGWindowID {
         window.windowID
@@ -23,11 +33,6 @@ struct MenuBarItem {
     /// The frame of the item's window.
     var frame: CGRect {
         window.frame
-    }
-
-    /// The title of the item's window.
-    var title: String? {
-        window.title
     }
 
     /// A Boolean value that indicates whether the item is on screen.
@@ -47,7 +52,10 @@ struct MenuBarItem {
         return !nonHideableItems.contains(info)
     }
 
-    /// The process identifier of the application that owns the item.
+    /// The process identifier of the application that owns the item's window.
+    ///
+    /// Events that target the item's window should be posted to this process.
+    /// To identify the application that created the item, use ``sourcePID``.
     var ownerPID: pid_t {
         window.ownerPID
     }
@@ -57,18 +65,21 @@ struct MenuBarItem {
     /// This may have a value when ``owningApplication`` does not have
     /// a localized name.
     var ownerName: String? {
-        window.ownerName
+        if sourcePID != window.ownerPID {
+            return owningApplication?.localizedName
+        }
+        return window.ownerName
     }
 
     /// The application that owns the item.
     var owningApplication: NSRunningApplication? {
-        window.owningApplication
+        NSRunningApplication(processIdentifier: sourcePID)
     }
 
     /// A name associated with the item that is suited for display to
     /// the user.
     var displayName: String {
-        var fallback: String { "Unknown" }
+        var fallback: String { String(localized: "Unknown") }
         guard let owningApplication else {
             return ownerName ?? title ?? fallback
         }
@@ -85,24 +96,29 @@ struct MenuBarItem {
         return switch MenuBarItemInfo.Namespace(owningApplication.bundleIdentifier) {
         case .controlCenter:
             switch title {
-            case "AccessibilityShortcuts": "Accessibility Shortcuts"
+            case "AccessibilityShortcuts": String(localized: "Accessibility Shortcuts")
             case "BentoBox": bestName // Control Center
-            case "FocusModes": "Focus"
-            case "KeyboardBrightness": "Keyboard Brightness"
-            case "MusicRecognition": "Music Recognition"
-            case "NowPlaying": "Now Playing"
-            case "ScreenMirroring": "Screen Mirroring"
-            case "StageManager": "Stage Manager"
-            case "UserSwitcher": "Fast User Switching"
-            case "WiFi": "Wi-Fi"
+            case "Battery": String(localized: "Battery")
+            case "Bluetooth": String(localized: "Bluetooth")
+            case "Clock": String(localized: "Clock")
+            case "Display": String(localized: "Display")
+            case "Sound": String(localized: "Sound")
+            case "FocusModes": String(localized: "Focus")
+            case "KeyboardBrightness": String(localized: "Keyboard Brightness")
+            case "MusicRecognition": String(localized: "Music Recognition")
+            case "NowPlaying": String(localized: "Now Playing")
+            case "ScreenMirroring": String(localized: "Screen Mirroring")
+            case "StageManager": String(localized: "Stage Manager")
+            case "UserSwitcher": String(localized: "Fast User Switching")
+            case "WiFi": String(localized: "Wi-Fi")
             default: title
             }
         case .systemUIServer:
             switch title {
-            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
+            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: String(localized: "Time Machine")
             default: title
             }
-        case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"): "Passwords"
+        case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"): String(localized: "Passwords")
         default:
             bestName
         }
@@ -126,8 +142,18 @@ struct MenuBarItem {
     /// it is a valid menu bar item window. Only call this initializer if you are
     /// certain that the window is valid.
     private init(uncheckedItemWindow itemWindow: WindowInfo) {
+        let source = MenuBarItemSourceResolver.source(for: itemWindow)
+        let sourcePID = source?.pid ?? itemWindow.ownerPID
+        let title = source?.title ?? itemWindow.title
         self.window = itemWindow
-        self.info = MenuBarItemInfo(uncheckedItemWindow: itemWindow)
+        self.sourcePID = sourcePID
+        self.title = title
+        self.info = MenuBarItemInfo(
+            namespace: MenuBarItemInfo.Namespace(
+                NSRunningApplication(processIdentifier: sourcePID)?.bundleIdentifier
+            ),
+            title: title ?? ""
+        )
     }
 
     /// Creates a menu bar item.
@@ -215,26 +241,5 @@ extension MenuBarItem: Equatable {
 extension MenuBarItem: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(window)
-    }
-}
-
-// MARK: MenuBarItemInfo Unchecked Item Window Initializer
-private extension MenuBarItemInfo {
-    /// Creates a simplified item from the given window.
-    ///
-    /// This initializer does not perform any checks on the window to ensure that
-    /// it is a valid menu bar item window. Only call this initializer if you are
-    /// certain that the window is valid.
-    init(uncheckedItemWindow itemWindow: WindowInfo) {
-        if let bundleIdentifier = itemWindow.owningApplication?.bundleIdentifier {
-            self.namespace = Namespace(bundleIdentifier)
-        } else {
-            self.namespace = .null
-        }
-        if let title = itemWindow.title {
-            self.title = title
-        } else {
-            self.title = ""
-        }
     }
 }

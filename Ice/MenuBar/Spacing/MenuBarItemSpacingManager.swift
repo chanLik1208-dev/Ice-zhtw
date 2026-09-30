@@ -28,11 +28,11 @@ final class MenuBarItemSpacingManager {
         let failedApps: [String]
 
         var errorDescription: String? {
-            "The following applications failed to quit and were not restarted:\n" + failedApps.joined(separator: "\n")
+            String(localized: "The following applications failed to quit and were not restarted:") + "\n" + failedApps.joined(separator: "\n")
         }
 
         var recoverySuggestion: String? {
-            "You may need to log out for the changes to take effect."
+            String(localized: "You may need to log out for the changes to take effect.")
         }
     }
 
@@ -155,7 +155,7 @@ final class MenuBarItemSpacingManager {
         try? await Task.sleep(for: .milliseconds(100))
 
         let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-        let pids = Set(items.map { $0.ownerPID })
+        let pids = Set(items.map { $0.sourcePID })
 
         var failedApps = [String]()
 
@@ -166,7 +166,7 @@ final class MenuBarItemSpacingManager {
                     app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
                     app != .current
                 else {
-                    break
+                    continue
                 }
                 group.addTask { @MainActor in
                     do {

@@ -15,6 +15,16 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 [![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
 
 > [!NOTE]
+> **Ice 繁體中文版（Ice-zhtw）**
+>
+> 此分支在原版 Ice 的基礎上加入：
+>
+> - **繁體中文介面**：所有介面字串都放在 `Ice/Resources/Localizable.xcstrings`（語系 `zh-Hant`）。系統語言設為繁體中文（台灣或香港）時會自動顯示中文。
+> - **macOS 26／27 相容性**：從 macOS 26 開始，所有選單列項目的視窗都改由「控制中心」持有，原版 Ice 因此無法分辨項目屬於哪個 App。此分支透過輔助使用 API 比對項目位置，找回真正的來源 App（見 `MenuBarItemSourceResolver.swift`）。在 macOS 14／15 上，這段邏輯完全不會啟用，行為與原版相同。
+>
+> 最低系統需求維持 macOS 14 Sonoma。
+
+> [!NOTE]
 > Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
 
 <a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">

@@ -3,7 +3,7 @@
 //  Ice
 //
 
-import Foundation
+import SwiftUI
 
 enum Constants {
     // swiftlint:disable force_unwrapping
@@ -27,8 +27,8 @@ enum Constants {
     static let permissionsWindowID = "PermissionsWindow"
 
     /// The title for the settings window.
-    static let settingsWindowTitle = "Ice"
+    static let settingsWindowTitle: LocalizedStringKey = "Ice"
 
     /// The title for the permissions window.
-    static let permissionsWindowTitle = "Permissions"
+    static let permissionsWindowTitle: LocalizedStringKey = "Permissions"
 }
