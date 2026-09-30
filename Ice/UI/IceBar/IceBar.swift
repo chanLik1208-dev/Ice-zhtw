@@ -148,7 +148,15 @@ final class IceBarPanel: NSPanel {
             }
         }
 
-        setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
+        // On macOS 27 and later, the Ice icon's position can't be determined
+        // reliably, but the Ice Bar is opened by clicking the Ice icon, so the
+        // mouse pointer is in the right place.
+        let iceBarLocation = if SystemMenuBar.isManagedBySystem {
+            IceBarLocation.mousePointer
+        } else {
+            appState.settingsManager.generalSettingsManager.iceBarLocation
+        }
+        setFrameOrigin(getOrigin(for: iceBarLocation))
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
@@ -160,10 +168,12 @@ final class IceBarPanel: NSPanel {
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
-        await appState.itemManager.cacheItemsIfNeeded()
+        if !SystemMenuBar.isManagedBySystem {
+            await appState.itemManager.cacheItemsIfNeeded()
 
-        if ScreenCapture.cachedCheckPermissions() {
-            await appState.imageCache.updateCache()
+            if ScreenCapture.cachedCheckPermissions() {
+                await appState.imageCache.updateCache()
+            }
         }
 
         contentView = IceBarHostingView(appState: appState, colorManager: colorManager, screen: screen, section: section) { [weak self] in
@@ -308,7 +318,9 @@ private struct IceBarContentView: View {
 
     @ViewBuilder
     private var content: some View {
-        if !ScreenCapture.cachedCheckPermissions() {
+        if SystemMenuBar.isManagedBySystem {
+            SystemIceBarItemsView(closePanel: closePanel)
+        } else if !ScreenCapture.cachedCheckPermissions() {
             HStack {
                 Text("The Ice Bar requires screen recording permissions.")
 
@@ -344,6 +356,76 @@ private struct IceBarContentView: View {
                 scrollIndicatorsFlashTrigger += 1
             }
         }
+    }
+}
+
+// MARK: - SystemIceBarItemsView
+
+/// A view that displays the menu bar items of other apps when the system
+/// manages the layout of menu bar items.
+private struct SystemIceBarItemsView: View {
+    @State private var items: [SystemMenuBarItem]?
+
+    let closePanel: () -> Void
+
+    var body: some View {
+        Group {
+            if let items {
+                if items.isEmpty {
+                    Text("No menu bar items found")
+                        .padding(.horizontal, 10)
+                } else {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 2) {
+                            ForEach(items) { item in
+                                SystemIceBarItemView(item: item, closePanel: closePanel)
+                            }
+                        }
+                    }
+                    .defaultScrollAnchor(.trailing)
+                }
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.horizontal, 10)
+            }
+        }
+        .task {
+            items = await SystemMenuBar.fetchItems()
+        }
+    }
+}
+
+// MARK: - SystemIceBarItemView
+
+private struct SystemIceBarItemView: View {
+    let item: SystemMenuBarItem
+    let closePanel: () -> Void
+
+    private func openItem() {
+        closePanel()
+        item.press()
+    }
+
+    var body: some View {
+        Button(action: openItem) {
+            Group {
+                if let icon = item.icon {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    Image(systemName: "questionmark.app")
+                }
+            }
+            .frame(width: 18, height: 18)
+            .padding(.horizontal, 5)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(item.displayName)
+        .accessibilityLabel(item.displayName)
     }
 }
 

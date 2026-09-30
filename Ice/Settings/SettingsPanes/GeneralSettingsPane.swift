@@ -60,16 +60,20 @@ struct GeneralSettingsPane: View {
             IceSection {
                 iceIconOptions
             }
-            IceSection {
-                iceBarOptions
-            }
-            IceSection {
-                showOnClick
-                showOnHover
-                showOnScroll
-            }
-            IceSection {
-                autoRehideOptions
+            // On macOS 27 and later, the system manages the layout of menu bar
+            // items, so these options conflict with it and are hidden.
+            if !SystemMenuBar.isManagedBySystem {
+                IceSection {
+                    iceBarOptions
+                }
+                IceSection {
+                    showOnClick
+                    showOnHover
+                    showOnScroll
+                }
+                IceSection {
+                    autoRehideOptions
+                }
             }
             IceSection {
                 spacingOptions

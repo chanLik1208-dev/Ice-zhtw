@@ -1217,6 +1217,16 @@
         }
       }
     },
+    "No menu bar items found": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到選單列項目"
+          }
+        }
+      }
+    },
     "No shape kind selected": {
       "localizations": {
         "zh-Hant": {
@@ -1287,12 +1297,32 @@
         }
       }
     },
+    "On this version of macOS, the system arranges menu bar items and collects the ones that don't fit behind its own button. Click the Ice icon to open the Ice Bar, which lists the menu bar items of your apps. To choose which items appear in the menu bar, use System Settings.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在這個版本的 macOS 上，選單列項目由系統負責排列，放不下的項目會收進系統自己的按鈕裡。按一下 Ice 圖像即可打開 Ice 列，查看你的 App 的選單列項目。若要選擇哪些項目顯示在選單列上，請使用「系統設定」。"
+          }
+        }
+      }
+    },
     "Open Ice Settings": {
       "localizations": {
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "打開 Ice 設定"
+          }
+        }
+      }
+    },
+    "Open System Settings": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開系統設定"
           }
         }
       }
@@ -1833,6 +1863,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ice 列的位置會根據情境而改變"
+          }
+        }
+      }
+    },
+    "The system manages menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列項目由系統管理"
           }
         }
       }

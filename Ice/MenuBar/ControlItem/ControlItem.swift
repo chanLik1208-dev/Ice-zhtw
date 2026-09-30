@@ -113,7 +113,11 @@ final class ControlItem {
         // we need the control item to always be present to act as a delimiter. The new solution
         // is to remove the constraint that prevents status items from having a length of zero,
         // then resize the content view. FIXME: Find a replacement for this.
+        //
+        // On macOS 27 and later, the system lays out menu bar items itself, and this
+        // workaround has no effect, so it's skipped.
         if
+            !SystemMenuBar.isManagedBySystem,
             let button = statusItem.button,
             let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
             let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
@@ -125,6 +129,12 @@ final class ControlItem {
         }
 
         configureStatusItem()
+
+        // On macOS 27 and later, the section dividers conflict with the system's
+        // layout of menu bar items, so only the Ice icon is added to the menu bar.
+        if SystemMenuBar.isManagedBySystem && isSectionDivider {
+            removeFromMenuBar()
+        }
     }
 
     /// Removes the status item without clearing its stored position.
@@ -153,6 +163,14 @@ final class ControlItem {
                     let self,
                     let section
                 else {
+                    return
+                }
+                if SystemMenuBar.isManagedBySystem {
+                    // Changing the length of a status item conflicts with the
+                    // system's layout of menu bar items.
+                    if section.name == .visible {
+                        statusItem.length = Lengths.standard
+                    }
                     return
                 }
                 if isVisible {
@@ -207,7 +225,9 @@ final class ControlItem {
                     return
                 }
 
-                if isVisible {
+                // On macOS 27 and later, the section dividers aren't added to the
+                // menu bar, but their hotkeys still open the Ice Bar.
+                if isVisible || SystemMenuBar.isManagedBySystem {
                     hotkey.enable()
                 } else {
                     hotkey.disable()
@@ -250,7 +270,9 @@ final class ControlItem {
                     else {
                         return
                     }
-                    if showIceIcon {
+                    // On macOS 27 and later, the Ice icon is the only way to open
+                    // the Ice Bar, so it's always shown.
+                    if showIceIcon || SystemMenuBar.isManagedBySystem {
                         addToMenuBar()
                     } else {
                         removeFromMenuBar()
@@ -287,7 +309,7 @@ final class ControlItem {
                     else {
                         return
                     }
-                    if useIceBar {
+                    if useIceBar || SystemMenuBar.isManagedBySystem {
                         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
                     } else {
                         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -314,7 +336,8 @@ final class ControlItem {
                 .sink { [weak self] enable in
                     guard
                         let self,
-                        identifier == .alwaysHidden
+                        identifier == .alwaysHidden,
+                        !SystemMenuBar.isManagedBySystem
                     else {
                         return
                     }
@@ -431,11 +454,6 @@ final class ControlItem {
 
     /// Creates a menu to show under the control item.
     private func createMenu(with appState: AppState) -> NSMenu {
-        func hotkey(withAction action: HotkeyAction) -> Hotkey? {
-            let hotkeySettingsManager = appState.settingsManager.hotkeySettingsManager
-            return hotkeySettingsManager.hotkey(withAction: action)
-        }
-
         let menu = NSMenu(title: "Ice")
 
         let settingsItem = NSMenuItem(
@@ -445,6 +463,43 @@ final class ControlItem {
         )
         settingsItem.keyEquivalentModifierMask = .command
         menu.addItem(settingsItem)
+
+        // The search panel and section toggles rely on Ice arranging menu bar
+        // items, which isn't possible on macOS 27 and later.
+        if !SystemMenuBar.isManagedBySystem {
+            addSectionMenuItems(to: menu, appState: appState)
+        }
+
+        menu.addItem(.separator())
+
+        let checkForUpdatesItem = NSMenuItem(
+            title: String(localized: "Check for Updates…"),
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        checkForUpdatesItem.target = self
+        menu.addItem(checkForUpdatesItem)
+
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: String(localized: "Quit Ice"),
+            action: #selector(NSApp.terminate),
+            keyEquivalent: "q"
+        )
+        quitItem.keyEquivalentModifierMask = .command
+        menu.addItem(quitItem)
+
+        return menu
+    }
+
+    /// Adds menu items to search menu bar items and toggle the menu bar
+    /// sections to the given menu.
+    private func addSectionMenuItems(to menu: NSMenu, appState: AppState) {
+        func hotkey(withAction action: HotkeyAction) -> Hotkey? {
+            let hotkeySettingsManager = appState.settingsManager.hotkeySettingsManager
+            return hotkeySettingsManager.hotkey(withAction: action)
+        }
 
         menu.addItem(.separator())
 
@@ -506,28 +561,6 @@ final class ControlItem {
             }
             menu.addItem(item)
         }
-
-        menu.addItem(.separator())
-
-        let checkForUpdatesItem = NSMenuItem(
-            title: String(localized: "Check for Updates…"),
-            action: #selector(checkForUpdates),
-            keyEquivalent: ""
-        )
-        checkForUpdatesItem.target = self
-        menu.addItem(checkForUpdatesItem)
-
-        menu.addItem(.separator())
-
-        let quitItem = NSMenuItem(
-            title: String(localized: "Quit Ice"),
-            action: #selector(NSApp.terminate),
-            keyEquivalent: "q"
-        )
-        quitItem.keyEquivalentModifierMask = .command
-        menu.addItem(quitItem)
-
-        return menu
     }
 
     /// Toggles the menu bar section associated with the given menu item.

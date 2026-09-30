@@ -50,8 +50,10 @@ final class MenuBarSection {
     private var rehideMonitor: UniversalEventMonitor?
 
     /// A Boolean value that indicates whether the Ice Bar should be used.
+    ///
+    /// On macOS 27 and later, the Ice Bar is always used.
     private var useIceBar: Bool {
-        appState?.settingsManager.generalSettingsManager.useIceBar ?? false
+        SystemMenuBar.isManagedBySystem || appState?.settingsManager.generalSettingsManager.useIceBar ?? false
     }
 
     /// A weak reference to the menu bar manager's Ice Bar panel.
@@ -73,6 +75,10 @@ final class MenuBarSection {
 
     /// A Boolean value that indicates whether the section is hidden.
     var isHidden: Bool {
+        if SystemMenuBar.isManagedBySystem {
+            // Every section is shown in the same Ice Bar.
+            return iceBarPanel?.currentSection == nil
+        }
         if useIceBar {
             if controlItem.state == .showItems {
                 return false
@@ -133,6 +139,16 @@ final class MenuBarSection {
             let appState,
             isHidden
         else {
+            return
+        }
+        if SystemMenuBar.isManagedBySystem {
+            // The system manages the layout of menu bar items, so every
+            // section shows the same Ice Bar.
+            Task {
+                if let screenForIceBar {
+                    await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
+                }
+            }
             return
         }
         guard controlItem.isAddedToMenuBar else {

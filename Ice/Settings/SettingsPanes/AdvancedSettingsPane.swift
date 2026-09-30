@@ -28,19 +28,23 @@ struct AdvancedSettingsPane: View {
 
     var body: some View {
         IceForm {
-            IceSection {
-                hideApplicationMenus
-                showSectionDividers
-                showAllSectionsOnUserDrag
-                showContextMenuOnRightClick
-            }
-            IceSection {
-                enableAlwaysHiddenSection
-                canToggleAlwaysHiddenSection
-            }
-            IceSection {
-                showOnHoverDelaySlider
-                tempShowIntervalSlider
+            // On macOS 27 and later, the system manages the layout of menu bar
+            // items, so these options conflict with it and are hidden.
+            if !SystemMenuBar.isManagedBySystem {
+                IceSection {
+                    hideApplicationMenus
+                    showSectionDividers
+                    showAllSectionsOnUserDrag
+                    showContextMenuOnRightClick
+                }
+                IceSection {
+                    enableAlwaysHiddenSection
+                    canToggleAlwaysHiddenSection
+                }
+                IceSection {
+                    showOnHoverDelaySlider
+                    tempShowIntervalSlider
+                }
             }
             IceSection("Permissions") {
                 allPermissions

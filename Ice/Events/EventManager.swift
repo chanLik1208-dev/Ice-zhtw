@@ -24,6 +24,13 @@ final class EventManager {
         guard let self else {
             return event
         }
+        // On macOS 27 and later, the system manages the layout of menu bar
+        // items, and Ice's menu bar event handling conflicts with it. Only
+        // close the Ice Bar when clicking outside of it.
+        if SystemMenuBar.isManagedBySystem {
+            handleCloseIceBar(with: event)
+            return event
+        }
         switch event.type {
         case .leftMouseDown:
             handleShowOnClick()
@@ -41,7 +48,9 @@ final class EventManager {
     private(set) lazy var mouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
     ) { [weak self] event in
-        self?.handleLeftMouseUp()
+        if !SystemMenuBar.isManagedBySystem {
+            self?.handleLeftMouseUp()
+        }
         return event
     }
 
@@ -49,7 +58,9 @@ final class EventManager {
     private(set) lazy var mouseDraggedMonitor = UniversalEventMonitor(
         mask: .leftMouseDragged
     ) { [weak self] event in
-        self?.handleLeftMouseDragged(with: event)
+        if !SystemMenuBar.isManagedBySystem {
+            self?.handleLeftMouseDragged(with: event)
+        }
         return event
     }
 
@@ -57,7 +68,9 @@ final class EventManager {
     private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
         mask: .mouseMoved
     ) { [weak self] event in
-        self?.handleShowOnHover()
+        if !SystemMenuBar.isManagedBySystem {
+            self?.handleShowOnHover()
+        }
         return event
     }
 
@@ -65,7 +78,9 @@ final class EventManager {
     private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
         mask: .scrollWheel
     ) { [weak self] event in
-        self?.handleShowOnScroll(with: event)
+        if !SystemMenuBar.isManagedBySystem {
+            self?.handleShowOnScroll(with: event)
+        }
         return event
     }
 
@@ -173,6 +188,26 @@ extension EventManager {
                 }
             }
         }
+    }
+
+    // MARK: Handle Close Ice Bar
+
+    /// Closes the Ice Bar when clicking outside of it and the Ice icon.
+    private func handleCloseIceBar(with event: NSEvent) {
+        guard
+            let appState,
+            let iceBarPanel = appState.menuBarManager.iceBarPanel,
+            iceBarPanel.isVisible,
+            event.window !== iceBarPanel
+        else {
+            return
+        }
+        if let visibleSection = appState.menuBarManager.section(withName: .visible) {
+            guard event.window !== visibleSection.controlItem.window else {
+                return
+            }
+        }
+        iceBarPanel.close()
     }
 
     // MARK: Handle Smart Rehide
