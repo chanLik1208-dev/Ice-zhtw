@@ -1,0 +1,2052 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "\"%@\" is invalid": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」無效"
+          }
+        }
+      }
+    },
+    "\"%@\" is not movable": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」無法移動"
+          }
+        }
+      }
+    },
+    "%@ is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」沒有回應。重新啟動之前無法移動它，其他選單列項目的移動也可能受到影響。"
+          }
+        }
+      }
+    },
+    "%@ second": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 秒"
+          }
+        }
+      }
+    },
+    "%@ seconds": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 秒"
+          }
+        }
+      }
+    },
+    "%@ Section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」區段"
+          }
+        }
+      }
+    },
+    "A new update is available": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新的更新項目可用"
+          }
+        }
+      }
+    },
+    "About": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關於"
+          }
+        }
+      }
+    },
+    "Absolutely no personal information is collected or stored.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "絕對不會收集或儲存任何個人資料。"
+          }
+        }
+      }
+    },
+    "Accessibility": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輔助使用"
+          }
+        }
+      }
+    },
+    "Accessibility Shortcuts": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輔助使用快速鍵"
+          }
+        }
+      }
+    },
+    "Acknowledgements": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "致謝"
+          }
+        }
+      }
+    },
+    "Advanced": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進階"
+          }
+        }
+      }
+    },
+    "Always-Hidden": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永遠隱藏"
+          }
+        }
+      }
+    },
+    "Always-hidden section can be shown": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以顯示「永遠隱藏」區段"
+          }
+        }
+      }
+    },
+    "Apply": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "套用"
+          }
+        }
+      }
+    },
+    "Apply different settings based on the current system appearance": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根據目前的系統外觀套用不同設定"
+          }
+        }
+      }
+    },
+    "Apply system theme to icon": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將系統主題套用到圖像"
+          }
+        }
+      }
+    },
+    "Apply the current spacing": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "套用目前的間距"
+          }
+        }
+      }
+    },
+    "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "套用此設定會重新啟動所有帶有選單列項目的 App。部分 App 可能需要手動重新啟動。"
+          }
+        }
+      }
+    },
+    "Arrange menu bar items.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排列選單列項目。"
+          }
+        }
+      }
+    },
+    "Arrow": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "箭頭"
+          }
+        }
+      }
+    },
+    "Automatically check for updates": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動檢查更新項目"
+          }
+        }
+      }
+    },
+    "Automatically download updates": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動下載更新項目"
+          }
+        }
+      }
+    },
+    "Automatically rehide": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動重新隱藏"
+          }
+        }
+      }
+    },
+    "Battery": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電池"
+          }
+        }
+      }
+    },
+    "BETA": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "測試版"
+          }
+        }
+      }
+    },
+    "between sections": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "於各區段之間"
+          }
+        }
+      }
+    },
+    "Bluetooth": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "藍牙"
+          }
+        }
+      }
+    },
+    "Border": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邊框"
+          }
+        }
+      }
+    },
+    "Border Color": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邊框顏色"
+          }
+        }
+      }
+    },
+    "Border Width": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邊框寬度"
+          }
+        }
+      }
+    },
+    "Check for Updates": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檢查更新項目"
+          }
+        }
+      }
+    },
+    "Check for Updates…": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檢查更新項目⋯"
+          }
+        }
+      }
+    },
+    "Checking for updates is not supported in debug mode.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "除錯模式下不支援檢查更新項目。"
+          }
+        }
+      }
+    },
+    "Chevron": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尖角"
+          }
+        }
+      }
+    },
+    "Choose a custom icon to show in the menu bar": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇要在選單列中顯示的自訂圖像"
+          }
+        }
+      }
+    },
+    "Choose image…": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇影像⋯"
+          }
+        }
+      }
+    },
+    "Click inside an empty area of the menu bar to show hidden menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按一下選單列的空白處來顯示隱藏的選單列項目"
+          }
+        }
+      }
+    },
+    "Click item": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按一下項目"
+          }
+        }
+      }
+    },
+    "Clock": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時鐘"
+          }
+        }
+      }
+    },
+    "Command": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續"
+          }
+        }
+      }
+    },
+    "Continue in Limited Mode": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以受限模式繼續"
+          }
+        }
+      }
+    },
+    "Contribute": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "參與貢獻"
+          }
+        }
+      }
+    },
+    "Control": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control"
+          }
+        }
+      }
+    },
+    "Could not complete event operation for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法完成「%@」的事件操作"
+          }
+        }
+      }
+    },
+    "Custom": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自訂"
+          }
+        }
+      }
+    },
+    "Dark Appearance": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色外觀"
+          }
+        }
+      }
+    },
+    "default": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設"
+          }
+        }
+      }
+    },
+    "Display": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示器"
+          }
+        }
+      }
+    },
+    "Display images of individual menu bar items.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示個別選單列項目的圖像。"
+          }
+        }
+      }
+    },
+    "Display the icon as a monochrome image matching the system appearance": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以符合系統外觀的單色影像顯示圖像"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "Door": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "門"
+          }
+        }
+      }
+    },
+    "Dot": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圓點"
+          }
+        }
+      }
+    },
+    "Drag to arrange your menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖移以排列你的選單列項目"
+          }
+        }
+      }
+    },
+    "Dynamic": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動態"
+          }
+        }
+      }
+    },
+    "Edit Menu Bar Appearance…": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編輯選單列外觀⋯"
+          }
+        }
+      }
+    },
+    "Edit the menu bar's appearance.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編輯選單列的外觀。"
+          }
+        }
+      }
+    },
+    "Ellipsis": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "省略號"
+          }
+        }
+      }
+    },
+    "Enable always-hidden section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用「永遠隱藏」區段"
+          }
+        }
+      }
+    },
+    "Enable the Ice Bar": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用 Ice 列"
+          }
+        }
+      }
+    },
+    "ERROR": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "錯誤"
+          }
+        }
+      }
+    },
+    "Event operation timed out for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」的事件操作逾時"
+          }
+        }
+      }
+    },
+    "Failed to create event for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法為「%@」建立事件"
+          }
+        }
+      }
+    },
+    "Fast User Switching": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速切換使用者"
+          }
+        }
+      }
+    },
+    "Focus": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "專注模式"
+          }
+        }
+      }
+    },
+    "Focused app": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用中的 App"
+          }
+        }
+      }
+    },
+    "Frame check timed out for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」的位置檢查逾時"
+          }
+        }
+      }
+    },
+    "Full": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整"
+          }
+        }
+      }
+    },
+    "General": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一般"
+          }
+        }
+      }
+    },
+    "Get real-time information about the menu bar.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得選單列的即時資訊。"
+          }
+        }
+      }
+    },
+    "Go to Advanced Settings": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往進階設定"
+          }
+        }
+      }
+    },
+    "Gradient": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漸層"
+          }
+        }
+      }
+    },
+    "Grant Permission": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "授予權限"
+          }
+        }
+      }
+    },
+    "Hidden": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隱藏"
+          }
+        }
+      }
+    },
+    "Hide application menus when showing menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示選單列項目時隱藏應用程式選單"
+          }
+        }
+      }
+    },
+    "Hide the %@ Section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隱藏「%@」區段"
+          }
+        }
+      }
+    },
+    "Hold to Preview": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住以預覽"
+          }
+        }
+      }
+    },
+    "Hotkey is reserved by macOS": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此快速鍵已由 macOS 保留"
+          }
+        }
+      }
+    },
+    "Hotkeys": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速鍵"
+          }
+        }
+      }
+    },
+    "Hover over an empty area of the menu bar to show hidden menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將指標停在選單列的空白處來顯示隱藏的選單列項目"
+          }
+        }
+      }
+    },
+    "Ice": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice"
+          }
+        }
+      }
+    },
+    "Ice can work in a limited mode without this permission.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有此權限時，Ice 可以在受限模式下運作。"
+          }
+        }
+      }
+    },
+    "Ice cannot arrange menu bar items in automatically hidden menu bars": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 無法在自動隱藏的選單列中排列項目"
+          }
+        }
+      }
+    },
+    "Ice cannot display menu bar items for automatically hidden menu bars": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 無法顯示自動隱藏的選單列中的項目"
+          }
+        }
+      }
+    },
+    "Ice cannot edit the appearance of automatically hidden menu bars": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 無法編輯自動隱藏的選單列的外觀"
+          }
+        }
+      }
+    },
+    "Ice Cube": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "冰塊"
+          }
+        }
+      }
+    },
+    "Ice icon": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 圖像"
+          }
+        }
+      }
+    },
+    "Ice needs permission to manage the menu bar.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 需要權限來管理選單列。"
+          }
+        }
+      }
+    },
+    "Ice needs this to:": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 需要此權限來："
+          }
+        }
+      }
+    },
+    "Ice Settings…": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 設定⋯"
+          }
+        }
+      }
+    },
+    "Insert divider items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插入分隔項目"
+          }
+        }
+      }
+    },
+    "Invalid app state for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」的 App 狀態無效"
+          }
+        }
+      }
+    },
+    "Invalid cursor location for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」的游標位置無效"
+          }
+        }
+      }
+    },
+    "Invalid event source for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」的事件來源無效"
+          }
+        }
+      }
+    },
+    "Keyboard Brightness": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤亮度"
+          }
+        }
+      }
+    },
+    "Last checked: %@": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次檢查：%@"
+          }
+        }
+      }
+    },
+    "Launch at login": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登入時啟動"
+          }
+        }
+      }
+    },
+    "Leading End Cap": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前端端點"
+          }
+        }
+      }
+    },
+    "left click": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按一下"
+          }
+        }
+      }
+    },
+    "Light Appearance": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "淺色外觀"
+          }
+        }
+      }
+    },
+    "Location": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置"
+          }
+        }
+      }
+    },
+    "macOS prohibits \"%@\" from being moved.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 不允許移動「%@」。"
+          }
+        }
+      }
+    },
+    "Make more room in the menu bar by hiding the left application menus if needed": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有需要時隱藏左側的應用程式選單，讓選單列有更多空間"
+          }
+        }
+      }
+    },
+    "max": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大"
+          }
+        }
+      }
+    },
+    "Menu Bar Appearance": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列外觀"
+          }
+        }
+      }
+    },
+    "Menu bar item is not movable.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法移動此選單列項目。"
+          }
+        }
+      }
+    },
+    "Menu bar item spacing": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列項目間距"
+          }
+        }
+      }
+    },
+    "Menu Bar Items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列項目"
+          }
+        }
+      }
+    },
+    "Menu bar items are rehidden after a fixed amount of time": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在固定時間後重新隱藏選單列項目"
+          }
+        }
+      }
+    },
+    "Menu bar items are rehidden using a smart algorithm": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用智慧演算法重新隱藏選單列項目"
+          }
+        }
+      }
+    },
+    "Menu bar items are rehidden when the focused app changes": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在切換使用中的 App 時重新隱藏選單列項目"
+          }
+        }
+      }
+    },
+    "Menu Bar Layout": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列佈局"
+          }
+        }
+      }
+    },
+    "Menu bar layout requires screen recording permissions": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列佈局需要螢幕錄製權限"
+          }
+        }
+      }
+    },
+    "Menu Bar Sections": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列區段"
+          }
+        }
+      }
+    },
+    "Menu Bar Shape": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列形狀"
+          }
+        }
+      }
+    },
+    "Mouse pointer": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滑鼠指標"
+          }
+        }
+      }
+    },
+    "Music Recognition": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音樂辨識"
+          }
+        }
+      }
+    },
+    "Never": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從未"
+          }
+        }
+      }
+    },
+    "No shape kind selected": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未選擇形狀類型"
+          }
+        }
+      }
+    },
+    "None": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無"
+          }
+        }
+      }
+    },
+    "none": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無"
+          }
+        }
+      }
+    },
+    "Not enough room to show \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有足夠空間顯示「%@」"
+          }
+        }
+      }
+    },
+    "Note: You may need to log out and back in for this setting to apply properly.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注意：你可能需要登出再重新登入，此設定才會正確生效。"
+          }
+        }
+      }
+    },
+    "Now Playing": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在播放"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        }
+      }
+    },
+    "Open Ice Settings": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開 Ice 設定"
+          }
+        }
+      }
+    },
+    "Operation timed out for \"%@\"": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」的操作逾時"
+          }
+        }
+      }
+    },
+    "Option": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Option"
+          }
+        }
+      }
+    },
+    "Option + click one of Ice's menu bar items to show the section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 Option 並按一下 Ice 的選單列項目來顯示此區段"
+          }
+        }
+      }
+    },
+    "Option + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 Option 並按一下 Ice 的選單列項目，或按一下選單列的空白處來顯示此區段"
+          }
+        }
+      }
+    },
+    "Other": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他"
+          }
+        }
+      }
+    },
+    "Passwords": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密碼"
+          }
+        }
+      }
+    },
+    "Permission Granted": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已授予權限"
+          }
+        }
+      }
+    },
+    "Permissions": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "權限"
+          }
+        }
+      }
+    },
+    "Please try again. If the error persists, please file a bug report.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請再試一次。如果錯誤持續發生，請回報問題。"
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結束"
+          }
+        }
+      }
+    },
+    "Quit Ice": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結束 Ice"
+          }
+        }
+      }
+    },
+    "Record Hotkey": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "錄製快速鍵"
+          }
+        }
+      }
+    },
+    "Report a Bug": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回報錯誤"
+          }
+        }
+      }
+    },
+    "Reset": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置"
+          }
+        }
+      }
+    },
+    "Reset to the default spacing": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置為預設間距"
+          }
+        }
+      }
+    },
+    "right click": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按右鍵"
+          }
+        }
+      }
+    },
+    "Round Cap": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圓形端點"
+          }
+        }
+      }
+    },
+    "Screen Mirroring": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕鏡像輸出"
+          }
+        }
+      }
+    },
+    "Screen Recording": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕錄製"
+          }
+        }
+      }
+    },
+    "Scroll or swipe in the menu bar to toggle hidden menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在選單列中捲動或滑動來切換隱藏的選單列項目"
+          }
+        }
+      }
+    },
+    "Search Menu Bar Items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋選單列項目"
+          }
+        }
+      }
+    },
+    "Search menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋選單列項目"
+          }
+        }
+      }
+    },
+    "Search menu bar items…": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋選單列項目⋯"
+          }
+        }
+      }
+    },
+    "Shadow": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "陰影"
+          }
+        }
+      }
+    },
+    "Shape Kind": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "形狀類型"
+          }
+        }
+      }
+    },
+    "Shift": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shift"
+          }
+        }
+      }
+    },
+    "Show all sections when Command + dragging menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 Command 拖移選單列項目時顯示所有區段"
+          }
+        }
+      }
+    },
+    "Show context menu on right click": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按右鍵時顯示快速選單"
+          }
+        }
+      }
+    },
+    "Show hidden menu bar items in a separate bar below the menu bar": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在選單列下方的獨立橫列中顯示隱藏的選單列項目"
+          }
+        }
+      }
+    },
+    "Show Ice icon": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示 Ice 圖像"
+          }
+        }
+      }
+    },
+    "Show item": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示項目"
+          }
+        }
+      }
+    },
+    "Show on click": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按一下時顯示"
+          }
+        }
+      }
+    },
+    "Show on hover": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "懸停時顯示"
+          }
+        }
+      }
+    },
+    "Show on hover delay": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "懸停顯示延遲"
+          }
+        }
+      }
+    },
+    "Show on scroll": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捲動時顯示"
+          }
+        }
+      }
+    },
+    "Show section dividers": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示區段分隔線"
+          }
+        }
+      }
+    },
+    "Show the %@ Section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示「%@」區段"
+          }
+        }
+      }
+    },
+    "Smart": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智慧"
+          }
+        }
+      }
+    },
+    "Solid": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "純色"
+          }
+        }
+      }
+    },
+    "Sound": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聲音"
+          }
+        }
+      }
+    },
+    "Split": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分割"
+          }
+        }
+      }
+    },
+    "Square Cap": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方形端點"
+          }
+        }
+      }
+    },
+    "Stage Manager": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "幕前調度"
+          }
+        }
+      }
+    },
+    "Strategy": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "策略"
+          }
+        }
+      }
+    },
+    "Sunglasses": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "太陽眼鏡"
+          }
+        }
+      }
+    },
+    "Support Ice": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 Ice"
+          }
+        }
+      }
+    },
+    "Temporarily shown item delay": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫時顯示項目的延遲"
+          }
+        }
+      }
+    },
+    "The amount of time to wait before hiding temporarily shown menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待多久才隱藏暫時顯示的選單列項目"
+          }
+        }
+      }
+    },
+    "The amount of time to wait before showing on hover": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "懸停後等待多久才顯示"
+          }
+        }
+      }
+    },
+    "The following applications failed to quit and were not restarted:": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下列應用程式無法結束，因此沒有重新啟動："
+          }
+        }
+      }
+    },
+    "The Ice Bar is centered below the Ice icon": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 列會置中顯示於 Ice 圖像下方"
+          }
+        }
+      }
+    },
+    "The Ice Bar is centered below the mouse pointer": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 列會置中顯示於滑鼠指標下方"
+          }
+        }
+      }
+    },
+    "The Ice Bar requires screen recording permissions.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 列需要螢幕錄製權限。"
+          }
+        }
+      }
+    },
+    "The Ice Bar's location changes based on context": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice 列的位置會根據情境而改變"
+          }
+        }
+      }
+    },
+    "Time Machine": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時光機"
+          }
+        }
+      }
+    },
+    "Timed": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定時"
+          }
+        }
+      }
+    },
+    "Tint": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "色調"
+          }
+        }
+      }
+    },
+    "Tip: you can also arrange menu bar items by Command + dragging them in the menu bar": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示：你也可以在選單列中按住 Command 拖移項目來排列"
+          }
+        }
+      }
+    },
+    "Tip: you can also edit these settings by right-clicking in an empty area of the menu bar": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示：你也可以在選單列的空白處按右鍵來編輯這些設定"
+          }
+        }
+      }
+    },
+    "Toggle application menus": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換應用程式選單"
+          }
+        }
+      }
+    },
+    "Toggle the always-hidden section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換「永遠隱藏」區段"
+          }
+        }
+      }
+    },
+    "Toggle the hidden section": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換「隱藏」區段"
+          }
+        }
+      }
+    },
+    "Trailing End Cap": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "後端端點"
+          }
+        }
+      }
+    },
+    "Type Hotkey": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入快速鍵"
+          }
+        }
+      }
+    },
+    "Unable to display menu bar items": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法顯示選單列項目"
+          }
+        }
+      }
+    },
+    "Unknown": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知"
+          }
+        }
+      }
+    },
+    "Use dynamic appearance": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用動態外觀"
+          }
+        }
+      }
+    },
+    "Use Ice Bar": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Ice 列"
+          }
+        }
+      }
+    },
+    "Use inset shape on screens with notch": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在有瀏海的螢幕上使用內縮形狀"
+          }
+        }
+      }
+    },
+    "Version %@": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@"
+          }
+        }
+      }
+    },
+    "Version %@ is now available": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@ 現已推出"
+          }
+        }
+      }
+    },
+    "Visible": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可見"
+          }
+        }
+      }
+    },
+    "Wi-Fi": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wi-Fi"
+          }
+        }
+      }
+    },
+    "You can still access Ice's settings by right-clicking an empty area in the menu bar": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你仍然可以在選單列的空白處按右鍵來打開 Ice 的設定"
+          }
+        }
+      }
+    },
+    "You may need to log out for the changes to take effect.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你可能需要登出才能讓變更生效。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

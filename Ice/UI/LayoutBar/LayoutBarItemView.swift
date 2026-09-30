@@ -109,15 +109,15 @@ final class LayoutBarItemView: NSView {
     /// Provides an alert to display when the item view is disabled.
     func provideAlertForDisabledItem() -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Menu bar item is not movable."
-        alert.informativeText = "macOS prohibits \"\(item.displayName)\" from being moved."
+        alert.messageText = String(localized: "Menu bar item is not movable.")
+        alert.informativeText = String(localized: "macOS prohibits \"\(item.displayName)\" from being moved.")
         return alert
     }
 
     /// Provides an alert to display when a menu bar item is unresponsive.
     func provideAlertForUnresponsiveItem() -> NSAlert {
         let alert = provideAlertForDisabledItem()
-        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved."
+        alert.informativeText = String(localized: "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved.")
         return alert
     }
 
@@ -129,7 +129,7 @@ final class LayoutBarItemView: NSView {
                 operation: .sourceOver,
                 fraction: isEnabled ? 1.0 : 0.67
             )
-            if Bridging.responsivity(for: item.ownerPID) == .unresponsive {
+            if Bridging.responsivity(for: item.sourcePID) == .unresponsive {
                 let warningImage = NSImage.warning
                 let width: CGFloat = 15
                 let scale = width / warningImage.size.width
@@ -158,7 +158,7 @@ final class LayoutBarItemView: NSView {
             return
         }
 
-        guard Bridging.responsivity(for: item.ownerPID) != .unresponsive else {
+        guard Bridging.responsivity(for: item.sourcePID) != .unresponsive else {
             let alert = provideAlertForUnresponsiveItem()
             alert.runModal()
             return

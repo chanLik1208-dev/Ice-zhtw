@@ -44,16 +44,16 @@ extension Modifiers {
     var labelValue: String {
         var result = [String]()
         if contains(.control) {
-            result.append("Control")
+            result.append(String(localized: "Control"))
         }
         if contains(.option) {
-            result.append("Option")
+            result.append(String(localized: "Option"))
         }
         if contains(.shift) {
-            result.append("Shift")
+            result.append(String(localized: "Shift"))
         }
         if contains(.command) {
-            result.append("Command")
+            result.append(String(localized: "Command"))
         }
         return result.joined(separator: " + ")
     }
