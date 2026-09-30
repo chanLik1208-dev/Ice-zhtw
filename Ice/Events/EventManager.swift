@@ -190,9 +190,11 @@ extension EventManager {
     ///
     /// Clicks inside the menu bar are handled by the other handlers.
     private func handleCloseIceBar(with event: NSEvent) {
+        guard let appState else {
+            return
+        }
+        let iceBarPanel = appState.menuBarManager.iceBarPanel
         guard
-            let appState,
-            let iceBarPanel = appState.menuBarManager.iceBarPanel,
             iceBarPanel.isVisible,
             event.window !== iceBarPanel,
             !isMouseInsideMenuBar
