@@ -66,7 +66,9 @@ final class ControlItem {
         guard let window else {
             return nil
         }
-        return CGWindowID(window.windowNumber)
+        // On macOS 27, a status item's window may not be backed by a window
+        // server window, and its window number can be out of range.
+        return CGWindowID(exactly: window.windowNumber)
     }
 
     /// A Boolean value that indicates whether the control item serves as
