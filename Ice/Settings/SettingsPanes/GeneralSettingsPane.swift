@@ -60,20 +60,16 @@ struct GeneralSettingsPane: View {
             IceSection {
                 iceIconOptions
             }
-            // On macOS 27 and later, the system manages the layout of menu bar
-            // items, so these options conflict with it and are hidden.
-            if !SystemMenuBar.isManagedBySystem {
-                IceSection {
-                    iceBarOptions
-                }
-                IceSection {
-                    showOnClick
-                    showOnHover
-                    showOnScroll
-                }
-                IceSection {
-                    autoRehideOptions
-                }
+            IceSection {
+                iceBarOptions
+            }
+            IceSection {
+                showOnClick
+                showOnHover
+                showOnScroll
+            }
+            IceSection {
+                autoRehideOptions
             }
             IceSection {
                 spacingOptions
@@ -181,9 +177,14 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var iceBarOptions: some View {
-        useIceBar
-        if manager.useIceBar {
+        // On macOS 27 and later, the Ice Bar is always used.
+        if SystemMenuBar.isManagedBySystem {
             iceBarLocationPicker
+        } else {
+            useIceBar
+            if manager.useIceBar {
+                iceBarLocationPicker
+            }
         }
     }
 

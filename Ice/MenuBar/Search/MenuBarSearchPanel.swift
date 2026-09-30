@@ -101,7 +101,7 @@ final class MenuBarSearchPanel: NSPanel {
         // Important that we set the navigation state before updating the cache.
         appState.navigationState.isSearchPresented = true
 
-        if ScreenCapture.cachedCheckPermissions() {
+        if !SystemMenuBar.isManagedBySystem && ScreenCapture.cachedCheckPermissions() {
             await appState.imageCache.updateCache()
         }
 
@@ -152,12 +152,19 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
         appState: AppState,
         panel: MenuBarSearchPanel
     ) {
-        super.init(
-            rootView: MenuBarSearchContentView(closePanel: { [weak panel] in panel?.close() })
+        let closePanel: () -> Void = { [weak panel] in panel?.close() }
+        // On macOS 27 and later, menu bar items are listed using the
+        // accessibility API.
+        let rootView = if SystemMenuBar.isManagedBySystem {
+            SystemMenuBarSearchContentView(closePanel: closePanel)
+                .erasedToAnyView()
+        } else {
+            MenuBarSearchContentView(closePanel: closePanel)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.imageCache)
                 .erasedToAnyView()
-        )
+        }
+        super.init(rootView: rootView)
     }
 
     @available(*, unavailable)
@@ -168,6 +175,99 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
     @available(*, unavailable)
     required init(rootView: AnyView) {
         fatalError("init(rootView:) has not been implemented")
+    }
+}
+
+/// A search interface for the menu bar items of other apps when the system
+/// manages the layout of menu bar items.
+private struct SystemMenuBarSearchContentView: View {
+    @State private var searchText = ""
+    @State private var items: [SystemMenuBarItem]?
+    @FocusState private var searchFieldIsFocused: Bool
+
+    let closePanel: () -> Void
+
+    private var filteredItems: [SystemMenuBarItem] {
+        let items = items ?? []
+        let query = searchText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else {
+            return items
+        }
+        return items.filter { item in
+            item.displayName.localizedCaseInsensitiveContains(query) ||
+            (item.application.bundleIdentifier?.localizedCaseInsensitiveContains(query) ?? false)
+        }
+    }
+
+    private func open(_ item: SystemMenuBarItem) {
+        closePanel()
+        item.press()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TextField(text: $searchText, prompt: Text("Search menu bar items…")) {
+                Text("Search menu bar items…")
+            }
+            .labelsHidden()
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.leading)
+            .font(.system(size: 18))
+            .padding(15)
+            .focused($searchFieldIsFocused)
+            .onSubmit {
+                if let item = filteredItems.first {
+                    open(item)
+                }
+            }
+
+            Divider()
+
+            Group {
+                if items == nil {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if filteredItems.isEmpty {
+                    Text("No menu bar items found")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(filteredItems) { item in
+                                Button {
+                                    open(item)
+                                } label: {
+                                    HStack {
+                                        if let icon = item.icon {
+                                            Image(nsImage: icon)
+                                                .resizable()
+                                                .frame(width: 20, height: 20)
+                                        }
+                                        Text(item.displayName)
+                                            .lineLimit(1)
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 15)
+                                    .padding(.vertical, 6)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+                }
+            }
+            .frame(height: 300)
+        }
+        .frame(width: 600)
+        .fixedSize()
+        .task {
+            searchFieldIsFocused = true
+            items = await SystemMenuBar.fetchItems()
+        }
     }
 }
 

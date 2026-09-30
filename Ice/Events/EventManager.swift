@@ -24,12 +24,8 @@ final class EventManager {
         guard let self else {
             return event
         }
-        // On macOS 27 and later, the system manages the layout of menu bar
-        // items, and Ice's menu bar event handling conflicts with it. Only
-        // close the Ice Bar when clicking outside of it.
         if SystemMenuBar.isManagedBySystem {
             handleCloseIceBar(with: event)
-            return event
         }
         switch event.type {
         case .leftMouseDown:
@@ -48,9 +44,7 @@ final class EventManager {
     private(set) lazy var mouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
     ) { [weak self] event in
-        if !SystemMenuBar.isManagedBySystem {
-            self?.handleLeftMouseUp()
-        }
+        self?.handleLeftMouseUp()
         return event
     }
 
@@ -58,9 +52,7 @@ final class EventManager {
     private(set) lazy var mouseDraggedMonitor = UniversalEventMonitor(
         mask: .leftMouseDragged
     ) { [weak self] event in
-        if !SystemMenuBar.isManagedBySystem {
-            self?.handleLeftMouseDragged(with: event)
-        }
+        self?.handleLeftMouseDragged(with: event)
         return event
     }
 
@@ -68,9 +60,12 @@ final class EventManager {
     private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
         mask: .mouseMoved
     ) { [weak self] event in
-        if !SystemMenuBar.isManagedBySystem {
-            self?.handleShowOnHover()
+        if SystemMenuBar.isManagedBySystem, self?.isMouseInsideMenuBar == true {
+            // Keep the menu bar item frames up to date while the mouse is in
+            // the menu bar, so that clicks can be handled correctly.
+            SystemMenuBar.refreshItemFramesIfNeeded()
         }
+        self?.handleShowOnHover()
         return event
     }
 
@@ -78,9 +73,7 @@ final class EventManager {
     private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
         mask: .scrollWheel
     ) { [weak self] event in
-        if !SystemMenuBar.isManagedBySystem {
-            self?.handleShowOnScroll(with: event)
-        }
+        self?.handleShowOnScroll(with: event)
         return event
     }
 
@@ -106,6 +99,7 @@ final class EventManager {
     func performSetup() {
         startAll()
         configureCancellables()
+        SystemMenuBar.refreshItemFramesIfNeeded()
     }
 
     /// Configures the internal observers for the manager.
@@ -192,13 +186,16 @@ extension EventManager {
 
     // MARK: Handle Close Ice Bar
 
-    /// Closes the Ice Bar when clicking outside of it and the Ice icon.
+    /// Closes the Ice Bar when clicking outside of it and the menu bar.
+    ///
+    /// Clicks inside the menu bar are handled by the other handlers.
     private func handleCloseIceBar(with event: NSEvent) {
         guard
             let appState,
             let iceBarPanel = appState.menuBarManager.iceBarPanel,
             iceBarPanel.isVisible,
-            event.window !== iceBarPanel
+            event.window !== iceBarPanel,
+            !isMouseInsideMenuBar
         else {
             return
         }
@@ -307,6 +304,7 @@ extension EventManager {
             let appState,
             appState.settingsManager.generalSettingsManager.showOnHover,
             !appState.settingsManager.generalSettingsManager.useIceBar,
+            !SystemMenuBar.isManagedBySystem,
             isMouseInsideMenuBar
         else {
             return
@@ -360,8 +358,12 @@ extension EventManager {
         // Notify each overlay panel that a menu bar item is being dragged.
         appState.appearanceManager.setIsDraggingMenuBarItem(true)
 
-        // Don't continue if the setting to show the sections is disabled.
-        guard appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag else {
+        // Don't continue if the setting to show the sections is disabled, or if
+        // the system manages the layout of menu bar items.
+        guard
+            appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag,
+            !SystemMenuBar.isManagedBySystem
+        else {
             return
         }
 
@@ -524,6 +526,11 @@ extension EventManager {
             let mouseLocation = MouseCursor.locationCoreGraphics
         else {
             return false
+        }
+        // On macOS 27 and later, menu bar items aren't backed by windows, so
+        // their frames are retrieved using the accessibility API.
+        if SystemMenuBar.isManagedBySystem {
+            return SystemMenuBar.isPointInsideMenuBarItem(mouseLocation)
         }
         let menuBarItems = MenuBarItem.getMenuBarItems(on: screen.displayID, onScreenOnly: true, activeSpaceOnly: true)
         return menuBarItems.contains { $0.frame.contains(mouseLocation) }

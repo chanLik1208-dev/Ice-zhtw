@@ -21,26 +21,84 @@ enum SystemMenuBar {
     /// The maximum time to wait for a single accessibility request.
     private static let messagingTimeout: Float = 0.2
 
+    /// A lock that protects the cached item frames.
+    private static let lock = NSLock()
+
+    /// The frames of all menu bar items, including the system's and Ice's,
+    /// specified in screen coordinates with a top-left origin.
+    private static var cachedItemFrames = [CGRect]()
+
+    /// A Boolean value that indicates whether the cached item frames are
+    /// being refreshed.
+    private static var isRefreshingItemFrames = false
+
+    /// The date the cached item frames were last refreshed.
+    private static var lastItemFramesRefreshDate = Date.distantPast
+
     /// Returns the menu bar items of all running apps other than Ice and the
     /// system, ordered as they appear in the menu bar.
     static func fetchItems() async -> [SystemMenuBarItem] {
         await Task.detached(priority: .userInitiated) {
-            makeItems()
+            SystemMenuBar.makeItems(includeSystemItems: false)
         }.value
     }
 
-    private static func makeItems() -> [SystemMenuBarItem] {
+    /// Returns a Boolean value that indicates whether the given point, specified
+    /// in screen coordinates with a top-left origin, is inside a menu bar item.
+    ///
+    /// The frames of the menu bar items are cached and refreshed in the background
+    /// at most twice per second, so the result may briefly be out of date.
+    static func isPointInsideMenuBarItem(_ point: CGPoint) -> Bool {
+        refreshItemFramesIfNeeded()
+        return lock.withLock {
+            cachedItemFrames.contains { $0.contains(point) }
+        }
+    }
+
+    /// Refreshes the cached item frames in the background, if they're out of date.
+    static func refreshItemFramesIfNeeded() {
+        let shouldRefresh = lock.withLock {
+            guard
+                isManagedBySystem,
+                !isRefreshingItemFrames,
+                Date.now.timeIntervalSince(lastItemFramesRefreshDate) >= 0.5
+            else {
+                return false
+            }
+            isRefreshingItemFrames = true
+            return true
+        }
+        guard shouldRefresh else {
+            return
+        }
+        Task.detached(priority: .utility) {
+            let frames = SystemMenuBar.makeItems(includeSystemItems: true).compactMap(\.frame)
+            SystemMenuBar.lock.withLock {
+                SystemMenuBar.cachedItemFrames = frames
+                SystemMenuBar.lastItemFramesRefreshDate = .now
+                SystemMenuBar.isRefreshingItemFrames = false
+            }
+        }
+    }
+
+    private static func makeItems(includeSystemItems: Bool) -> [SystemMenuBarItem] {
         let currentPID = ProcessInfo.processInfo.processIdentifier
         var items = [SystemMenuBarItem]()
         for app in NSWorkspace.shared.runningApplications {
             let pid = app.processIdentifier
             guard
-                pid != currentPID,
                 pid > 0,
-                !app.isTerminated,
-                !(app.bundleIdentifier?.hasPrefix("com.apple.") ?? false)
+                !app.isTerminated
             else {
                 continue
+            }
+            if !includeSystemItems {
+                guard
+                    pid != currentPID,
+                    !(app.bundleIdentifier?.hasPrefix("com.apple.") ?? false)
+                else {
+                    continue
+                }
             }
             let application = AXUIElementCreateApplication(pid)
             AXUIElementSetMessagingTimeout(application, messagingTimeout)
@@ -59,24 +117,31 @@ enum SystemMenuBar {
                         element: child,
                         application: app,
                         label: [title, description].compactMap { $0 }.first { !$0.isEmpty },
-                        minX: position(of: child)?.x ?? .greatestFiniteMagnitude
+                        frame: frame(of: child)
                     )
                 )
             }
         }
-        return items.sorted { $0.minX < $1.minX }
+        return items.sorted { ($0.frame?.minX ?? .greatestFiniteMagnitude) < ($1.frame?.minX ?? .greatestFiniteMagnitude) }
     }
 
-    /// Returns the position of the given accessibility element.
-    private static func position(of element: AXUIElement) -> CGPoint? {
-        guard let value: AXValue = copyAttribute(kAXPositionAttribute, of: element) else {
+    /// Returns the frame of the given accessibility element.
+    private static func frame(of element: AXUIElement) -> CGRect? {
+        guard
+            let positionValue: AXValue = copyAttribute(kAXPositionAttribute, of: element),
+            let sizeValue: AXValue = copyAttribute(kAXSizeAttribute, of: element)
+        else {
             return nil
         }
         var position = CGPoint.zero
-        guard AXValueGetValue(value, .cgPoint, &position) else {
+        var size = CGSize.zero
+        guard
+            AXValueGetValue(positionValue, .cgPoint, &position),
+            AXValueGetValue(sizeValue, .cgSize, &size)
+        else {
             return nil
         }
-        return position
+        return CGRect(origin: position, size: size)
     }
 
     /// Returns the value of an attribute of an accessibility element.
@@ -118,8 +183,8 @@ struct SystemMenuBarItem: Identifiable {
     /// The item's accessibility title or description.
     let label: String?
 
-    /// The item's horizontal position in the menu bar.
-    let minX: CGFloat
+    /// The item's frame, specified in screen coordinates with a top-left origin.
+    let frame: CGRect?
 
     /// A name for the item that is suited for display to the user.
     var displayName: String {

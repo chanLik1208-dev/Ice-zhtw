@@ -149,6 +149,7 @@ final class MenuBarSection {
                     await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
                 }
             }
+            startRehideChecks()
             return
         }
         guard controlItem.isAddedToMenuBar else {

@@ -29,8 +29,15 @@ struct AdvancedSettingsPane: View {
     var body: some View {
         IceForm {
             // On macOS 27 and later, the system manages the layout of menu bar
-            // items, so these options conflict with it and are hidden.
-            if !SystemMenuBar.isManagedBySystem {
+            // items, so the options that conflict with it are hidden.
+            if SystemMenuBar.isManagedBySystem {
+                IceSection {
+                    showContextMenuOnRightClick
+                }
+                IceSection {
+                    showOnHoverDelaySlider
+                }
+            } else {
                 IceSection {
                     hideApplicationMenus
                     showSectionDividers

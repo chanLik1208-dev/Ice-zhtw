@@ -133,6 +133,24 @@ final class IceBarPanel: NSPanel {
                 let lowerBound = screen.frame.minX
                 let upperBound = screen.frame.maxX - frame.width
 
+                // On macOS 27 and later, the Ice icon's window isn't a window server
+                // window, so its frame is taken from the window itself, and the
+                // mouse pointer is used if the frame isn't in the menu bar.
+                if SystemMenuBar.isManagedBySystem {
+                    guard lowerBound <= upperBound else {
+                        return originForRightOfScreen
+                    }
+                    guard
+                        let section = appState.menuBarManager.section(withName: .visible),
+                        let iconFrame = section.controlItem.window?.frame,
+                        screen.frame.contains(iconFrame),
+                        iconFrame.maxY >= screen.visibleFrame.maxY
+                    else {
+                        return getOrigin(for: .mousePointer)
+                    }
+                    return CGPoint(x: (iconFrame.midX - frame.width / 2).clamped(to: lowerBound...upperBound), y: originY)
+                }
+
                 guard
                     lowerBound <= upperBound,
                     let section = appState.menuBarManager.section(withName: .visible),
@@ -148,15 +166,7 @@ final class IceBarPanel: NSPanel {
             }
         }
 
-        // On macOS 27 and later, the Ice icon's position can't be determined
-        // reliably, but the Ice Bar is opened by clicking the Ice icon, so the
-        // mouse pointer is in the right place.
-        let iceBarLocation = if SystemMenuBar.isManagedBySystem {
-            IceBarLocation.mousePointer
-        } else {
-            appState.settingsManager.generalSettingsManager.iceBarLocation
-        }
-        setFrameOrigin(getOrigin(for: iceBarLocation))
+        setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {

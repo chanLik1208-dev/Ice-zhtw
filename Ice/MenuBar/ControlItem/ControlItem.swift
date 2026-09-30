@@ -464,11 +464,7 @@ final class ControlItem {
         settingsItem.keyEquivalentModifierMask = .command
         menu.addItem(settingsItem)
 
-        // The search panel and section toggles rely on Ice arranging menu bar
-        // items, which isn't possible on macOS 27 and later.
-        if !SystemMenuBar.isManagedBySystem {
-            addSectionMenuItems(to: menu, appState: appState)
-        }
+        addSectionMenuItems(to: menu, appState: appState)
 
         menu.addItem(.separator())
 
@@ -517,6 +513,12 @@ final class ControlItem {
             searchItem.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
         }
         menu.addItem(searchItem)
+
+        // The section toggles rely on Ice arranging menu bar items, which
+        // isn't possible on macOS 27 and later.
+        guard !SystemMenuBar.isManagedBySystem else {
+            return
+        }
 
         menu.addItem(.separator())
 
