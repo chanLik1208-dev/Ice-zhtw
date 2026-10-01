@@ -84,17 +84,47 @@ final class MenuBarItemSpacingManager {
 
         app.terminate()
 
-        var cancellable: AnyCancellable?
+        /// Resumes a continuation at most once, from any context.
+        final class Resumer: @unchecked Sendable {
+            private let lock = NSLock()
+            private var continuation: CheckedContinuation<Void, Error>?
+            var cancellable: AnyCancellable?
+
+            init(_ continuation: CheckedContinuation<Void, Error>) {
+                self.continuation = continuation
+            }
+
+            func resume(with result: Result<Void, Error>) {
+                lock.lock()
+                let continuation = self.continuation
+                self.continuation = nil
+                lock.unlock()
+                cancellable?.cancel()
+                continuation?.resume(with: result)
+            }
+        }
+
+        struct QuitTimeoutError: Error { }
+
         return try await withCheckedThrowingContinuation { continuation in
+            let resumer = Resumer(continuation)
+
             let timeoutTask = Task {
                 try await Task.sleep(for: .seconds(forceTerminateDelay))
                 if !app.isTerminated {
                     Logger.spacing.debug("Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
                     app.forceTerminate()
                 }
+                // Don't wait forever for an app that refuses to quit, or
+                // applying the spacing never finishes.
+                try await Task.sleep(for: .seconds(forceTerminateDelay * 2))
+                if !app.isTerminated {
+                    Logger.spacing.debug("Application \"\(logString(for: app))\" could not be terminated")
+                    resumer.resume(with: .failure(QuitTimeoutError()))
+                }
             }
 
-            cancellable = app.publisher(for: \.isTerminated).sink { [weak self] isTerminated in
+            resumer.cancellable = app.publisher(for: \.isTerminated).sink { [weak self] isTerminated in
                 guard
                     let self,
                     isTerminated
@@ -102,9 +132,8 @@ final class MenuBarItemSpacingManager {
                     return
                 }
                 timeoutTask.cancel()
-                cancellable?.cancel()
                 Logger.spacing.debug("Application \"\(logString(for: app))\" terminated successfully")
-                continuation.resume()
+                resumer.resume(with: .success(()))
             }
         }
     }
