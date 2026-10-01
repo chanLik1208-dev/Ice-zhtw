@@ -15,11 +15,14 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: macos-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
 
       - name: Determine version
         id: version
@@ -50,6 +53,7 @@ jobs:
             "CODE_SIGN_IDENTITY[sdk=macosx*]=-" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM= \
+            ENABLE_HARDENED_RUNTIME=NO \
             ${{ steps.version.outputs.settings }}
 
       - name: Package
