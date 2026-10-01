@@ -328,15 +328,45 @@ struct GeneralSettingsPane: View {
     private func applyOffset() {
         isApplyingOffset = true
         manager.itemSpacingOffset = tempItemSpacingOffset
+        // Set the offset directly, as the manager only forwards it asynchronously.
+        appState.spacingManager.offset = Int(tempItemSpacingOffset)
         Task {
             do {
-                try await appState.spacingManager.applyOffset()
+                let spacingManager = appState.spacingManager
+                let apps = await spacingManager.appsToRelaunch()
+                let shouldRelaunch = confirmRelaunch(of: apps)
+                try await spacingManager.applyOffset(relaunching: shouldRelaunch ? apps : [])
             } catch {
                 let alert = NSAlert(error: error)
                 alert.runModal()
             }
             isApplyingOffset = false
         }
+    }
+
+    /// Asks the user whether to relaunch the given apps now, so that they pick
+    /// up the new spacing. Returns `true` if the apps should be relaunched.
+    private func confirmRelaunch(of apps: [NSRunningApplication]) -> Bool {
+        guard !apps.isEmpty else {
+            return false
+        }
+        let names = apps.map { "• " + ($0.localizedName ?? $0.bundleIdentifier ?? "") }
+
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Relaunch apps to apply the spacing?")
+        alert.informativeText = String(localized: "These apps will quit and reopen. Save your work in them first. Apps that don't quit (for example, because they have unsaved changes) are left open.") + "\n\n" + names.joined(separator: "\n")
+        alert.addButton(withTitle: String(localized: "Relaunch Apps"))
+        alert.addButton(withTitle: String(localized: "Later"))
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            return true
+        }
+
+        let laterAlert = NSAlert()
+        laterAlert.messageText = String(localized: "The spacing will apply as apps reopen")
+        laterAlert.informativeText = String(localized: "Each app uses the new spacing the next time it opens, or after you log out and back in.")
+        laterAlert.runModal()
+        return false
     }
 
     /// Reset menu bar spacing offset to default.
