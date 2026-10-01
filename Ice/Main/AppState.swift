@@ -183,10 +183,14 @@ final class AppState: ObservableObject {
         permissionsManager.stopAllChecks()
         menuBarManager.performSetup()
         appearanceManager.performSetup()
-        eventManager.performSetup()
         settingsManager.performSetup()
-        itemManager.performSetup()
-        imageCache.performSetup()
+        if Constants.isMenuBarItemManagementEnabled {
+            // These depend on Ice's control items, which aren't
+            // added when menu bar item management is disabled.
+            eventManager.performSetup()
+            itemManager.performSetup()
+            imageCache.performSetup()
+        }
         updatesManager.performSetup()
         userNotificationManager.performSetup()
     }
@@ -206,6 +210,12 @@ final class AppState: ObservableObject {
             Logger.appState.warning("Window \(window.identifier?.rawValue ?? "<NIL>") is not the settings window!")
             return
         }
+        // Make sure the window can always be closed and minimized. The
+        // permissions window removes these, and they must never leak
+        // into the settings window.
+        window.styleMask.insert([.closable, .miniaturizable])
+        window.standardWindowButton(.closeButton)?.isEnabled = true
+        window.standardWindowButton(.miniaturizeButton)?.isEnabled = true
         settingsWindow = window
         configureCancellables()
     }

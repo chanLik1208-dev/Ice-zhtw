@@ -18,6 +18,9 @@ enum HotkeyAction: String, Codable, CaseIterable {
 
     @MainActor
     func perform(appState: AppState) async {
+        guard Constants.isMenuBarItemManagementEnabled || self == .toggleApplicationMenus else {
+            return
+        }
         switch self {
         case .toggleHiddenSection:
             guard let section = appState.menuBarManager.section(withName: .hidden) else {

@@ -233,16 +233,6 @@
         }
       }
     },
-    "Automatically download updates": {
-      "localizations": {
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自動下載更新項目"
-          }
-        }
-      }
-    },
     "Automatically rehide": {
       "localizations": {
         "zh-Hant": {
@@ -339,16 +329,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "檢查更新項目⋯"
-          }
-        }
-      }
-    },
-    "Checking for updates is not supported in debug mode.": {
-      "localizations": {
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "除錯模式下不支援檢查更新項目。"
           }
         }
       }
@@ -2043,6 +2023,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "你可能需要登出才能讓變更生效。"
+          }
+        }
+      }
+    },
+    "Download": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載"
+          }
+        }
+      }
+    },
+    "Later": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "稍後"
+          }
+        }
+      }
+    },
+    "You're up to date!": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已是最新版本！"
+          }
+        }
+      }
+    },
+    "Failed to check for updates": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法檢查更新項目"
+          }
+        }
+      }
+    },
+    "Ice %@ is now available. You are currently using version %@.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice %@ 現已推出，你目前使用的是版本 %@。"
+          }
+        }
+      }
+    },
+    "Ice %@ is currently the newest version available.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice %@ 是目前可用的最新版本。"
+          }
+        }
+      }
+    },
+    "The server returned an unexpected response (%lld).": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "伺服器傳回了非預期的回應（%lld）。"
+          }
+        }
+      }
+    },
+    "On macOS 27 and later, Ice's menu bar icons, hidden sections, and the Ice Bar are disabled. To show this window again, open Ice from Finder or Launchpad.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 macOS 27 及以後版本，Ice 的選單列圖示、隱藏區段及 Ice Bar 均已停用。如需再次顯示此視窗，請從 Finder 或「啟動台」重新開啟 Ice。"
+          }
+        }
+      }
+    },
+    "Arranging menu bar items is not available on macOS 27 and later": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 27 及以後版本無法排列選單列項目"
           }
         }
       }

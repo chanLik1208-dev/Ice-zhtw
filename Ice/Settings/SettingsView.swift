@@ -41,6 +41,11 @@ struct SettingsView: View {
             sidebar
         } detail: {
             detailView
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if !Constants.isMenuBarItemManagementEnabled {
+                        menuBarItemManagementNotice
+                    }
+                }
         }
         .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
     }
@@ -81,6 +86,21 @@ struct SettingsView: View {
         case .about:
             AboutSettingsPane()
         }
+    }
+
+    @ViewBuilder
+    private var menuBarItemManagementNotice: some View {
+        Label {
+            Text("On macOS 27 and later, Ice's menu bar icons, hidden sections, and the Ice Bar are disabled. To show this window again, open Ice from Finder or Launchpad.")
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+        }
+        .font(.callout)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(.quinary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding([.horizontal, .top], 20)
     }
 
     @ViewBuilder
