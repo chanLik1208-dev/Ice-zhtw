@@ -328,6 +328,8 @@ struct GeneralSettingsPane: View {
     private func applyOffset() {
         isApplyingOffset = true
         manager.itemSpacingOffset = tempItemSpacingOffset
+        // Set the offset directly, as the manager only forwards it asynchronously.
+        appState.spacingManager.offset = Int(tempItemSpacingOffset)
         Task {
             do {
                 try await appState.spacingManager.applyOffset()

@@ -43,29 +43,89 @@ final class MenuBarItemSpacingManager {
     /// Does not take effect until ``applyOffset()`` is called.
     var offset = 0
 
-    /// Runs a command with the given arguments.
-    private func runCommand(_ command: String, with arguments: [String]) async throws {
-        let process = Process()
+    /// An error that occurs when a `defaults` command fails.
+    private struct DefaultsCommandError: LocalizedError {
+        let arguments: [String]
+        let status: Int32
 
-        process.executableURL = URL(filePath: "/usr/bin/env")
-        process.arguments = CollectionOfOne(command) + arguments
-
-        let task = Task.detached {
-            try process.run()
-            process.waitUntilExit()
+        var errorDescription: String? {
+            String(localized: "Failed to save the menu bar item spacing (exit code \(status)).")
         }
 
+        var recoverySuggestion: String? {
+            "defaults " + arguments.joined(separator: " ")
+        }
+    }
+
+    /// An error that occurs when the system reverts the spacing after it was applied.
+    private struct SpacingRevertedError: LocalizedError {
+        var errorDescription: String? {
+            String(localized: "macOS reverted the menu bar item spacing after it was applied.")
+        }
+
+        var recoverySuggestion: String? {
+            String(localized: "This version of macOS may not support changing the menu bar item spacing.")
+        }
+    }
+
+    /// The domains that the spacing is written to.
+    ///
+    /// The value is written to both the current host's global domain and the
+    /// global domain, as different versions of macOS read it from different
+    /// places.
+    private static let domainArguments: [[String]] = [
+        ["-currentHost"],
+        [],
+    ]
+
+    /// Runs the `defaults` command with the given arguments, returning its output.
+    @discardableResult
+    private func runDefaults(_ arguments: [String]) async throws -> String {
+        let task = Task.detached {
+            let process = Process()
+            let pipe = Pipe()
+
+            process.executableURL = URL(filePath: "/usr/bin/defaults")
+            process.arguments = arguments
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
+
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+
+            guard process.terminationStatus == 0 else {
+                throw DefaultsCommandError(arguments: arguments, status: process.terminationStatus)
+            }
+            return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         return try await task.value
     }
 
     /// Removes the value for the specified key.
-    private func removeValue(forKey key: Key) async throws {
-        try await runCommand("defaults", with: ["-currentHost", "delete", "-globalDomain", key.rawValue])
+    private func removeValue(forKey key: Key) async {
+        for domain in Self.domainArguments {
+            // Deleting a key that doesn't exist fails, which is fine.
+            _ = try? await runDefaults(domain + ["delete", "-globalDomain", key.rawValue])
+        }
     }
 
     /// Sets the value for the specified key to the key's default value plus the given offset.
     private func setOffset(_ offset: Int, forKey key: Key) async throws {
-        try await runCommand("defaults", with: ["-currentHost", "write", "-globalDomain", key.rawValue, "-int", String(key.defaultValue + offset)])
+        for domain in Self.domainArguments {
+            try await runDefaults(domain + ["write", "-globalDomain", key.rawValue, "-int", String(key.defaultValue + offset)])
+        }
+    }
+
+    /// Returns the values currently stored for the specified key, one for each
+    /// of the domains in ``domainArguments``.
+    private func storedValues(forKey key: Key) async -> [Int?] {
+        var values = [Int?]()
+        for domain in Self.domainArguments {
+            let output = try? await runDefaults(domain + ["read", "-globalDomain", key.rawValue])
+            values.append(output.flatMap { Int($0) })
+        }
+        return values
     }
 
     /// Returns a log string for the given app.
@@ -173,9 +233,10 @@ final class MenuBarItemSpacingManager {
     ///
     /// - Note: Calling this restarts all apps with a menu bar item.
     func applyOffset() async throws {
+        let offset = offset
         if offset == 0 {
-            try await removeValue(forKey: .spacing)
-            try await removeValue(forKey: .padding)
+            await removeValue(forKey: .spacing)
+            await removeValue(forKey: .padding)
         } else {
             try await setOffset(offset, forKey: .spacing)
             try await setOffset(offset, forKey: .padding)
@@ -234,6 +295,18 @@ final class MenuBarItemSpacingManager {
 
         if !failedApps.isEmpty {
             throw GroupedRelaunchError(failedApps: failedApps)
+        }
+
+        // Make sure that the system didn't revert the values once the
+        // apps were relaunched.
+        try? await Task.sleep(for: .seconds(2))
+        for key in [Key.spacing, Key.padding] {
+            let expected: Int? = offset == 0 ? nil : key.defaultValue + offset
+            let values = await storedValues(forKey: key)
+            Logger.spacing.info("Stored values for \(key.rawValue): \(String(describing: values)), expected \(String(describing: expected))")
+            if values.contains(where: { $0 != expected }) {
+                throw SpacingRevertedError()
+            }
         }
     }
 }

@@ -2116,6 +2116,36 @@
           }
         }
       }
+    },
+    "Failed to save the menu bar item spacing (exit code %d).": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法儲存選單列項目間距（結束代碼 %d）。"
+          }
+        }
+      }
+    },
+    "macOS reverted the menu bar item spacing after it was applied.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "套用選單列項目間距後，macOS 將其還原了。"
+          }
+        }
+      }
+    },
+    "This version of macOS may not support changing the menu bar item spacing.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此版本的 macOS 可能不支援變更選單列項目間距。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
