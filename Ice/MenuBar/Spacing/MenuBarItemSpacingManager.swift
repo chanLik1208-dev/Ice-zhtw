@@ -36,11 +36,18 @@ final class MenuBarItemSpacingManager {
         }
     }
 
-    /// Delay before force terminating an app.
+    /// How long to wait for an app to quit.
+    ///
+    /// Apps that are still running after this delay (for example, because they
+    /// are asking the user to save changes) are left alone, rather than being
+    /// force terminated and losing unsaved work.
+    private let quitTimeout = 5
+
+    /// Delay before force terminating an app that is allowed to be force terminated.
     private let forceTerminateDelay = 1
 
     /// The offset to apply to the default spacing and padding.
-    /// Does not take effect until ``applyOffset()`` is called.
+    /// Does not take effect until ``applyOffset(relaunching:)`` is called.
     var offset = 0
 
     /// An error that occurs when a `defaults` command fails.
@@ -134,7 +141,12 @@ final class MenuBarItemSpacingManager {
     }
 
     /// Asynchronously signals the given app to quit.
-    private func signalAppToQuit(_ app: NSRunningApplication) async throws {
+    ///
+    /// - Parameters:
+    ///   - app: The app to quit.
+    ///   - allowsForceTerminate: Whether to force terminate the app if it doesn't
+    ///     quit on its own. Only pass `true` for apps without user data.
+    private func signalAppToQuit(_ app: NSRunningApplication, allowsForceTerminate: Bool = false) async throws {
         if app.isTerminated {
             Logger.spacing.debug("Application \"\(logString(for: app))\" is already terminated")
             return
@@ -170,14 +182,16 @@ final class MenuBarItemSpacingManager {
             let resumer = Resumer(continuation)
 
             let timeoutTask = Task {
-                try await Task.sleep(for: .seconds(forceTerminateDelay))
-                if !app.isTerminated {
-                    Logger.spacing.debug("Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
-                    app.forceTerminate()
+                if allowsForceTerminate {
+                    try await Task.sleep(for: .seconds(forceTerminateDelay))
+                    if !app.isTerminated {
+                        Logger.spacing.debug("Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
+                        app.forceTerminate()
+                    }
                 }
                 // Don't wait forever for an app that refuses to quit, or
                 // applying the spacing never finishes.
-                try await Task.sleep(for: .seconds(forceTerminateDelay * 2))
+                try await Task.sleep(for: .seconds(quitTimeout))
                 if !app.isTerminated {
                     Logger.spacing.debug("Application \"\(logString(for: app))\" could not be terminated")
                     resumer.resume(with: .failure(QuitTimeoutError()))
@@ -229,10 +243,46 @@ final class MenuBarItemSpacingManager {
         }
     }
 
-    /// Applies the current ``offset``.
+    /// Returns the apps that need to be relaunched for a new spacing to take
+    /// effect, sorted by name.
     ///
-    /// - Note: Calling this restarts all apps with a menu bar item.
-    func applyOffset() async throws {
+    /// Apple's own menu bar items are refreshed by relaunching Control Center,
+    /// so Apple's apps aren't included.
+    func appsToRelaunch() async -> [NSRunningApplication] {
+        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
+        var pids = Set(items.map { $0.sourcePID })
+
+        // On macOS 27 and later, menu bar items have no windows of their own, so
+        // the window list above finds nothing. Find the apps through the
+        // accessibility API as well.
+        let accessibilityPIDs = await Task.detached {
+            MenuBarItemSourceResolver.pidsOfApplicationsWithMenuBarItems()
+        }.value
+        pids.formUnion(accessibilityPIDs)
+
+        return pids
+            .compactMap { NSRunningApplication(processIdentifier: $0) }
+            .filter { app in
+                guard
+                    app != .current,
+                    !app.isTerminated,
+                    app.bundleURL != nil,
+                    let bundleIdentifier = app.bundleIdentifier
+                else {
+                    return false
+                }
+                return !bundleIdentifier.hasPrefix("com.apple.")
+            }
+            .sorted { ($0.localizedName ?? "") < ($1.localizedName ?? "") }
+    }
+
+    /// Applies the current ``offset``, relaunching the given apps so that
+    /// they pick up the new spacing.
+    ///
+    /// Apps that aren't relaunched use the new spacing the next time they
+    /// launch. Control Center is always relaunched to refresh Apple's own
+    /// menu bar items.
+    func applyOffset(relaunching apps: [NSRunningApplication]) async throws {
         let offset = offset
         if offset == 0 {
             await removeValue(forKey: .spacing)
@@ -244,56 +294,17 @@ final class MenuBarItemSpacingManager {
 
         try? await Task.sleep(for: .milliseconds(100))
 
-        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-        var pids = Set(items.map { $0.sourcePID })
-
-        // On macOS 27 and later, menu bar items have no windows of their own, so
-        // the window list above finds nothing. Find the apps through the
-        // accessibility API instead. Apple's own items are handled by relaunching
-        // Control Center below.
-        let accessibilityPIDs = await Task.detached {
-            MenuBarItemSourceResolver.pidsOfApplicationsWithMenuBarItems()
-        }.value
-        for pid in accessibilityPIDs {
-            guard
-                let bundleIdentifier = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
-                !bundleIdentifier.hasPrefix("com.apple.")
-            else {
-                continue
-            }
-            pids.insert(pid)
-        }
-        Logger.spacing.info("Relaunching \(pids.count) apps with menu bar items")
+        Logger.spacing.info("Relaunching \(apps.count) apps with menu bar items")
 
         var failedApps = [String]()
 
         await withTaskGroup(of: Void.self) { group in
-            for pid in pids {
-                guard
-                    let app = NSRunningApplication(processIdentifier: pid),
-                    app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
-                    app != .current
-                else {
-                    continue
-                }
+            for app in apps {
                 group.addTask { @MainActor in
                     do {
                         try await self.relaunchApp(app)
                     } catch {
-                        guard let name = app.localizedName else {
-                            return
-                        }
-                        if app.bundleIdentifier == "com.apple.Spotlight" {
-                            // Spotlight automatically relaunches, so only consider it a failure if it never quit.
-                            if
-                                let latestSpotlightInstance = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Spotlight").first,
-                                latestSpotlightInstance.processIdentifier == app.processIdentifier
-                            {
-                                failedApps.append(name)
-                            }
-                        } else {
-                            failedApps.append(name)
-                        }
+                        failedApps.append(app.localizedName ?? app.bundleIdentifier ?? "\(app.processIdentifier)")
                     }
                 }
             }
@@ -303,7 +314,8 @@ final class MenuBarItemSpacingManager {
 
         if let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first {
             do {
-                try await signalAppToQuit(app)
+                // Control Center has no user data, and doesn't always quit on request.
+                try await signalAppToQuit(app, allowsForceTerminate: true)
             } catch {
                 if let name = app.localizedName {
                     failedApps.append(name)

@@ -2146,6 +2146,56 @@
           }
         }
       }
+    },
+    "Relaunch apps to apply the spacing?": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要重新開啟 App 來套用間距嗎？"
+          }
+        }
+      }
+    },
+    "These apps will quit and reopen. Save your work in them first. Apps that don't quit (for example, because they have unsaved changes) are left open.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以下 App 會結束並重新開啟，請先儲存其中的工作。無法結束的 App（例如有未儲存的變更）會維持開啟。"
+          }
+        }
+      }
+    },
+    "Relaunch Apps": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新開啟 App"
+          }
+        }
+      }
+    },
+    "The spacing will apply as apps reopen": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "間距會在 App 重新開啟後套用"
+          }
+        }
+      }
+    },
+    "Each app uses the new spacing the next time it opens, or after you log out and back in.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每個 App 會在下次開啟時，或你登出再登入後，使用新的間距。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
