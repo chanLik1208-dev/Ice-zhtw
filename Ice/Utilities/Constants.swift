@@ -20,6 +20,18 @@ enum Constants {
     static let bundleIdentifier = Bundle.main.bundleIdentifier!
     // swiftlint:enable force_unwrapping
 
+    /// A Boolean value that indicates whether Ice manages menu bar items on
+    /// the current version of macOS.
+    ///
+    /// On macOS 27 and later, Ice's menu bar items (the Ice icon and the section
+    /// dividers), the hidden sections, and the Ice Bar are all disabled.
+    static let isMenuBarItemManagementEnabled: Bool = {
+        if #available(macOS 27, *) {
+            return false
+        }
+        return true
+    }()
+
     /// The identifier for the settings window.
     static let settingsWindowID = "SettingsWindow"
 

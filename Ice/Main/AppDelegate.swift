@@ -9,6 +9,10 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private weak var appState: AppState?
 
+    /// A Boolean value that indicates whether the app was launched
+    /// automatically as a login item.
+    private var wasLaunchedAsLoginItem = false
+
     // MARK: NSApplicationDelegate Methods
 
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -22,6 +26,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Allow the app to set the cursor in the background.
         appState.setsCursorInBackground = true
+
+        // The launch event is only available while the app is launching.
+        if let event = NSAppleEventManager.shared().currentAppleEvent {
+            wasLaunchedAsLoginItem = event.eventID == AEEventID(kAEOpenApplication) &&
+                event.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -52,6 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch appState.permissionsManager.permissionsState {
             case .hasAllPermissions, .hasRequiredPermissions:
                 appState.performSetup()
+                // Without the Ice icon in the menu bar, the settings window is
+                // the only visible sign that the app is running, so show it
+                // whenever the user launches the app.
+                if !Constants.isMenuBarItemManagementEnabled && !self.wasLaunchedAsLoginItem {
+                    self.openSettingsWindow()
+                }
             case .missingPermissions:
                 appState.activate(withPolicy: .regular)
                 appState.openPermissionsWindow()
@@ -62,6 +78,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         // Deactivate and set the policy to accessory when all windows are closed.
         appState?.deactivate(withPolicy: .accessory)
+        return false
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // Reopening the app (e.g. from Finder or Launchpad) shows the settings
+        // window. This is the way to reach the settings when the Ice icon is
+        // hidden or, on macOS 27 and later, not shown at all.
+        if !flag {
+            openSettingsWindow()
+        }
         return false
     }
 

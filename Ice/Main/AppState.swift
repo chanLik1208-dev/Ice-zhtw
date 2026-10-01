@@ -183,10 +183,14 @@ final class AppState: ObservableObject {
         permissionsManager.stopAllChecks()
         menuBarManager.performSetup()
         appearanceManager.performSetup()
-        eventManager.performSetup()
         settingsManager.performSetup()
-        itemManager.performSetup()
-        imageCache.performSetup()
+        if Constants.isMenuBarItemManagementEnabled {
+            // These depend on Ice's control items, which aren't
+            // added when menu bar item management is disabled.
+            eventManager.performSetup()
+            itemManager.performSetup()
+            imageCache.performSetup()
+        }
         updatesManager.performSetup()
         userNotificationManager.performSetup()
     }

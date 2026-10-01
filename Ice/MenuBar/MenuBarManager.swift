@@ -55,6 +55,12 @@ final class MenuBarManager: ObservableObject {
 
     /// Performs the initial setup of the menu bar manager.
     func performSetup() {
+        guard Constants.isMenuBarItemManagementEnabled else {
+            // Don't add any control items or set up the Ice Bar.
+            Logger.menuBarManager.info("Menu bar item management is disabled on this version of macOS")
+            configureCancellables()
+            return
+        }
         initializeSections()
         configureCancellables()
         iceBarPanel.performSetup()

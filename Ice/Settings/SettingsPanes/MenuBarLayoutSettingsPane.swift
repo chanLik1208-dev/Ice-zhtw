@@ -9,7 +9,9 @@ struct MenuBarLayoutSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        if !ScreenCapture.cachedCheckPermissions() {
+        if !Constants.isMenuBarItemManagementEnabled {
+            unavailable
+        } else if !ScreenCapture.cachedCheckPermissions() {
             missingScreenRecordingPermission
         } else if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             cannotArrange
@@ -47,6 +49,13 @@ struct MenuBarLayoutSettingsPane: View {
                 layoutBar(for: section)
             }
         }
+    }
+
+    @ViewBuilder
+    private var unavailable: some View {
+        Text("Arranging menu bar items is not available on macOS 27 and later")
+            .font(.title3)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder

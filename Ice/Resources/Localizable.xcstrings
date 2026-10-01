@@ -2096,6 +2096,26 @@
           }
         }
       }
+    },
+    "On macOS 27 and later, Ice's menu bar icons, hidden sections, and the Ice Bar are disabled. To show this window again, open Ice from Finder or Launchpad.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 macOS 27 及以後版本，Ice 的選單列圖示、隱藏區段及 Ice Bar 均已停用。如需再次顯示此視窗，請從 Finder 或「啟動台」重新開啟 Ice。"
+          }
+        }
+      }
+    },
+    "Arranging menu bar items is not available on macOS 27 and later": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 27 及以後版本無法排列選單列項目"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
