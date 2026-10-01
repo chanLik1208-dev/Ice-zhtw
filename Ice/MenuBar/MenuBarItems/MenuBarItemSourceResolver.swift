@@ -147,6 +147,17 @@ enum MenuBarItemSourceResolver {
         return snapshot.first { framesMatch($0.frame, frame) }?.pid
     }
 
+    /// Returns the process identifiers of the running applications that have
+    /// menu bar items, according to the accessibility API.
+    ///
+    /// Unlike the window list, this also works on macOS 27 and later, where
+    /// menu bar items no longer have windows of their own. This method can
+    /// block while waiting for unresponsive applications, so avoid calling it
+    /// on the main thread.
+    static func pidsOfApplicationsWithMenuBarItems() -> Set<pid_t> {
+        Set(makeSnapshot().map { $0.pid })
+    }
+
     /// Returns the frames of the extras menu bar items of all running applications.
     private static func makeSnapshot() -> [ExtrasItemFrame] {
         let currentPID = ProcessInfo.processInfo.processIdentifier

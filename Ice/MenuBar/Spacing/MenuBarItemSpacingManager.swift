@@ -245,7 +245,25 @@ final class MenuBarItemSpacingManager {
         try? await Task.sleep(for: .milliseconds(100))
 
         let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-        let pids = Set(items.map { $0.sourcePID })
+        var pids = Set(items.map { $0.sourcePID })
+
+        // On macOS 27 and later, menu bar items have no windows of their own, so
+        // the window list above finds nothing. Find the apps through the
+        // accessibility API instead. Apple's own items are handled by relaunching
+        // Control Center below.
+        let accessibilityPIDs = await Task.detached {
+            MenuBarItemSourceResolver.pidsOfApplicationsWithMenuBarItems()
+        }.value
+        for pid in accessibilityPIDs {
+            guard
+                let bundleIdentifier = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
+                !bundleIdentifier.hasPrefix("com.apple.")
+            else {
+                continue
+            }
+            pids.insert(pid)
+        }
+        Logger.spacing.info("Relaunching \(pids.count) apps with menu bar items")
 
         var failedApps = [String]()
 
