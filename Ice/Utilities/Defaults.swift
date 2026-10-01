@@ -167,6 +167,11 @@ extension Defaults {
         case showAllSectionsOnUserDrag = "ShowAllSectionsOnUserDrag"
         case showContextMenuOnRightClick = "ShowContextMenuOnRightClick"
 
+        // MARK: Update Settings
+
+        case automaticallyChecksForUpdates = "AutomaticallyChecksForUpdates"
+        case lastUpdateCheckDate = "LastUpdateCheckDate"
+
         // MARK: Menu Bar Appearance Settings
 
         case menuBarAppearanceConfigurationV2 = "MenuBarAppearanceConfigurationV2"

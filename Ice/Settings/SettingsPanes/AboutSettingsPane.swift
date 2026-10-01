@@ -98,10 +98,7 @@ struct AboutSettingsPane: View {
     private var updatesSection: some View {
         IceSection(options: .hasDividers) {
             automaticallyCheckForUpdates
-            automaticallyDownloadUpdates
-            if updatesManager.canCheckForUpdates {
-                checkForUpdates
-            }
+            checkForUpdates
         }
         .frame(maxWidth: 600)
     }
@@ -115,18 +112,15 @@ struct AboutSettingsPane: View {
     }
 
     @ViewBuilder
-    private var automaticallyDownloadUpdates: some View {
-        Toggle(
-            "Automatically download updates",
-            isOn: updatesManager.bindings.automaticallyDownloadsUpdates
-        )
-    }
-
-    @ViewBuilder
     private var checkForUpdates: some View {
         HStack {
             Button("Check for Updates") {
                 updatesManager.checkForUpdates()
+            }
+            .disabled(!updatesManager.canCheckForUpdates)
+            if updatesManager.isCheckingForUpdates {
+                ProgressView()
+                    .controlSize(.small)
             }
             Spacer()
             Text("Last checked: \(lastUpdateCheckString)")

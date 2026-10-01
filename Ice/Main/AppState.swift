@@ -206,6 +206,12 @@ final class AppState: ObservableObject {
             Logger.appState.warning("Window \(window.identifier?.rawValue ?? "<NIL>") is not the settings window!")
             return
         }
+        // Make sure the window can always be closed and minimized. The
+        // permissions window removes these, and they must never leak
+        // into the settings window.
+        window.styleMask.insert([.closable, .miniaturizable])
+        window.standardWindowButton(.closeButton)?.isEnabled = true
+        window.standardWindowButton(.miniaturizeButton)?.isEnabled = true
         settingsWindow = window
         configureCancellables()
     }

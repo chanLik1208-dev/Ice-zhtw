@@ -22,6 +22,8 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 > - **繁體中文介面**：所有介面字串都放在 `Ice/Resources/Localizable.xcstrings`（語系 `zh-Hant`）。系統語言設為繁體中文（台灣或香港）時會自動顯示中文。
 > - **macOS 26／27 相容性**：從 macOS 26 開始，所有選單列項目的視窗都改由「控制中心」持有，原版 Ice 因此無法分辨項目屬於哪個 App。此分支透過輔助使用 API 比對項目位置，找回真正的來源 App（見 `MenuBarItemSourceResolver.swift`）。在 macOS 14／15 上，這段邏輯完全不會啟用，行為與原版相同。
 >
+> - **獨立的更新來源**：自動更新改為檢查此分支的 [GitHub Releases](https://github.com/chanLik1208-dev/Ice-zhtw/releases)，不會再被原版 Ice 的更新覆蓋。發佈新版本時，Release 的標籤（例如 `v0.11.13` 或 `0.11.12-zhtw.1`）必須比 App 的 `MARKETING_VERSION` 新，才會被視為可用更新。
+>
 > 最低系統需求維持 macOS 14 Sonoma。
 
 > [!NOTE]
