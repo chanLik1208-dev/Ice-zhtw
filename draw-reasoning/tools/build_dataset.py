@@ -148,6 +148,17 @@ class Builder:
         }
         actions = session["actions"]
         effective = effective_after(actions)
+        prompt_events = session.get("prompt_events", [])
+        if not any(e.get("prompt", "").strip() for e in prompt_events):
+            print(f"[{sid}] 注意：沒有提示詞", file=sys.stderr)
+
+        def prompt_at(action_id: int) -> str | None:
+            """action_id 這個動作畫下去時有效的提示詞。"""
+            text = None
+            for e in prompt_events:
+                if e["after_action_id"] < action_id:
+                    text = e.get("prompt")
+            return (text or "").strip() or None
 
         snapshots = {s["after_action_id"]: s["file"] for s in session.get("snapshots", [])
                      if store.exists(s["file"])}
@@ -200,6 +211,7 @@ class Builder:
                 "level": "action",
                 "source": source,
                 "stage": a.get("stage") or "unknown",
+                "prompt": prompt_at(a["id"]),
                 "before": canvas_ref(prev_id),
                 "target": {"kind": "action", "action": a},
             })
@@ -227,6 +239,7 @@ class Builder:
                 "level": "stage",
                 "source": source,
                 "stage": stage,
+                "prompt": prompt_at(first),
                 "before": canvas_ref(prev_end),
                 "target": {
                     "kind": "canvas",
@@ -249,6 +262,7 @@ class Builder:
         prefix = f"vid-{ref}"
         image_dir = self.out / "images" / prefix
         image_dir.mkdir(parents=True, exist_ok=True)
+        prompt = (manifest.get("prompt") or "").strip() or None
         source = {"kind": "video", "ref": ref, "author": src.get("author", ""),
                   "consent": src.get("consent", "")}
 
@@ -265,6 +279,7 @@ class Builder:
                 "level": "keyframe",
                 "source": source,
                 "stage": frames[i].get("stage") or "unknown",
+                "prompt": prompt,
                 "before": {"image": paths[i - 1], "replay": [], "t": frames[i - 1]["t"]},
                 "target": {"kind": "canvas", "image": paths[i], "replay": [], "t": frames[i]["t"]},
             })

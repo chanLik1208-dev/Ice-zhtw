@@ -31,7 +31,9 @@
   input[type=number] { width: 56px; }
   input[type=text], input[type=number], select { font: inherit; padding: 5px 8px; border: 1px solid var(--line);
     border-radius: 8px; background: #fff; color: var(--fg); -webkit-user-select: text; user-select: text; }
-  #note { flex: 1 1 200px; min-width: 160px; }
+  #prompt { flex: 1 1 100%; font-size: 15px; }
+  #prompt.need { border-color: var(--warn); box-shadow: 0 0 0 2px rgba(180, 83, 9, .25); }
+  #note, #caption { flex: 1 1 200px; min-width: 160px; }
   #width-val { min-width: 2.5em; text-align: right; font-variant-numeric: tabular-nums; }
   #status { width: 100%; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   #status .warn { color: var(--warn); }
@@ -48,6 +50,7 @@
 </head>
 <body>
 <header id="toolbar">
+  <input type="text" id="prompt" placeholder="提示詞：這張圖要畫什麼（開始畫之前必填，之後可以修改）" autocomplete="off">
   <div class="group">
     <button id="tool-stroke" data-tool="stroke" title="筆刷（B）">筆刷</button>
     <button id="tool-erase" data-tool="erase" title="橡皮擦（E）">橡皮擦</button>
@@ -60,6 +63,10 @@
   <label class="group">粗細 <input type="range" id="width" min="1" max="120" step="1"><span id="width-val"></span></label>
   <div class="group" id="stages"></div>
   <input type="text" id="note" placeholder="這個階段打算畫什麼（選填）" autocomplete="off">
+  <div class="group" style="flex: 1 1 260px;">
+    <input type="text" id="caption" placeholder="下一筆的說明（選填）" autocomplete="off">
+    <button id="caption-last" title="把說明加到剛畫完的那一筆">加到上一筆</button>
+  </div>
   <div class="group">
     <label class="group">每 <input type="number" id="snap-every" min="1" step="1"> 筆截圖</label>
     <label class="group"><input type="checkbox" id="pen-only"> 只用觸控筆</label>
@@ -277,6 +284,7 @@ function newSession() {
     source: { kind: 'recorder', author: '', consent: 'self' },
     settings: { snapshot_every: 1 },
     stages: STAGES.map((s) => s[0]),
+    prompt_events: [],
     stage_events: [{ after_action_id: 0, stage: 'sketch', note: '' }],
     snapshots: [],
     actions: [],
@@ -294,12 +302,41 @@ function loadSessionState() {
   const lastSnap = session.snapshots.length ? session.snapshots[session.snapshots.length - 1].after_action_id : 0;
   sinceSnap = session.actions.filter((a) => a.id > lastSnap).length;
   $('note').value = lastEvent ? lastEvent.note : '';
+  if (!session.prompt_events) session.prompt_events = [];
+  $('prompt').value = currentPrompt();
+  $('prompt').classList.remove('need');
+  $('caption').value = '';
   $('snap-every').value = session.settings.snapshot_every;
   redraw();
   updateUI();
 }
 
 const lastActionId = () => (session.actions.length ? session.actions[session.actions.length - 1].id : 0);
+
+function currentPrompt() {
+  const evs = session.prompt_events;
+  return evs.length ? evs[evs.length - 1].prompt : '';
+}
+
+// 提示詞修改歷史：中間沒有新動作就改寫同一筆，有新動作才新增一筆
+function setPrompt(text) {
+  const evs = session.prompt_events;
+  const lastId = lastActionId();
+  const last = evs[evs.length - 1];
+  if (last && last.after_action_id === lastId) last.prompt = text;
+  else evs.push({ after_action_id: lastId, prompt: text });
+  // 改回和前一版一樣的內容時，就不算修改
+  const n = evs.length;
+  if (n >= 2 && evs[n - 1].prompt === evs[n - 2].prompt) evs.pop();
+  if (text.trim()) $('prompt').classList.remove('need');
+}
+
+// 「下一筆的說明」用一次就清空
+function takeCaption() {
+  const text = $('caption').value.trim();
+  $('caption').value = '';
+  return text || null;
+}
 
 function lastEffectiveAction() {
   for (let i = session.actions.length - 1; i >= 0; i--) {
@@ -331,6 +368,7 @@ function commitAction(fields) {
     stage: fields.stage,
     pointer: fields.pointer,
     t: fields.t,
+    caption: takeCaption(),
   };
   session.actions.push(action);
   saveAction(action);
@@ -433,6 +471,12 @@ canvas.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   if (penOnly && e.pointerType !== 'pen') return;
   e.preventDefault();
+  if (!session.actions.length && !currentPrompt().trim()) {
+    // 第一筆之前一定要先有提示詞
+    $('prompt').classList.add('need');
+    $('prompt').focus();
+    return;
+  }
   // preventDefault 會讓焦點留在輸入框，快捷鍵就失效了；手機上也順便收起鍵盤
   if (document.activeElement && document.activeElement.matches('input, select, textarea')) {
     document.activeElement.blur();
@@ -570,12 +614,13 @@ function sessionToJSON(s, snapshots) {
     source: s.source,
     settings: s.settings,
     stages: s.stages,
+    prompt_events: s.prompt_events,
     stage_events: s.stage_events,
     snapshots,
     actions: s.actions,
   };
   const lines = Object.entries(ordered).map(([k, v]) => {
-    if (Array.isArray(v) && ['stage_events', 'snapshots', 'actions'].includes(k)) {
+    if (Array.isArray(v) && ['prompt_events', 'stage_events', 'snapshots', 'actions'].includes(k)) {
       if (!v.length) return `  ${JSON.stringify(k)}: []`;
       return `  ${JSON.stringify(k)}: [\n${v.map((x) => '    ' + JSON.stringify(x)).join(',\n')}\n  ]`;
     }
@@ -646,17 +691,24 @@ $('consent').addEventListener('change', (e) => {
 // ---------------------------------------------------------------------------
 // 介面
 // ---------------------------------------------------------------------------
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function updateStatus() {
   if (!session) return;
   const counts = { stroke: 0, erase: 0, undo: 0 };
   for (const a of session.actions) counts[a.type]++;
   const pending = pendingSnaps.size ? `（處理中 ${pendingSnaps.size}）` : '';
   const store = db ? '已自動暫存' : '<span class="warn">此瀏覽器無法暫存，重新整理會遺失，請記得匯出</span>';
-  const err = persistError ? ` · <span class="warn">暫存錯誤：${persistError}</span>` : '';
+  const err = persistError ? ` · <span class="warn">暫存錯誤：${escapeHTML(persistError)}</span>` : '';
+  const last = session.actions[session.actions.length - 1];
+  const caption = last && last.caption ? ` · 上一筆說明：「${escapeHTML(last.caption)}」` : '';
+  const prompts = session.prompt_events.length > 1 ? ` · 提示詞改過 ${session.prompt_events.length - 1} 次` : '';
   $('status').innerHTML =
     `${session.session_id} · 動作 ${session.actions.length}` +
     `（筆畫 ${counts.stroke}／擦除 ${counts.erase}／復原 ${counts.undo}）` +
-    ` · 截圖 ${session.snapshots.length}${pending} · ${store}${err}`;
+    ` · 截圖 ${session.snapshots.length}${pending}${prompts}${caption} · ${store}${err}`;
 }
 
 function updateUI() {
@@ -695,6 +747,23 @@ $('color').addEventListener('input', (e) => { tool.color = e.target.value.toLowe
 $('width').addEventListener('input', (e) => {
   tool.width[tool.current] = Number(e.target.value);
   $('width-val').textContent = e.target.value;
+});
+$('prompt').addEventListener('input', (e) => {
+  setPrompt(e.target.value);
+  saveMetaSoon();
+  if (!$('dl-json').hidden) refreshExportJSON();
+});
+$('caption-last').addEventListener('click', () => {
+  const last = session.actions[session.actions.length - 1];
+  const text = $('caption').value.trim();
+  if (!last || !text || active) return;
+  last.caption = text;
+  $('caption').value = '';
+  saveAction(last);
+  updateStatus();
+});
+$('caption').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') e.target.blur();
 });
 $('note').addEventListener('input', (e) => {
   session.stage_events[session.stage_events.length - 1].note = e.target.value;

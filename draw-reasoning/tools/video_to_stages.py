@@ -182,6 +182,7 @@ def main() -> None:
     ap.add_argument("--stage-marks", help='依秒數標階段，例如 "0:sketch,95:lineart,200:color"')
     ap.add_argument("--ref", help="來源名稱（預設為影片檔名）")
     ap.add_argument("--author", default="", help="作者")
+    ap.add_argument("--prompt", help="這支影片在畫什麼（文字提示詞），會寫進 keyframes.json")
     ap.add_argument("--consent", choices=["self", "permission"], default="self",
                     help="授權：self 自己的作品／permission 已取得同意（預設 self）")
     ap.add_argument("--overwrite", action="store_true", help="輸出資料夾已有關鍵幀時覆蓋")
@@ -243,6 +244,7 @@ def main() -> None:
             "crop": args.crop,
             "stage_marks": args.stage_marks,
         },
+        "prompt": (args.prompt or "").strip() or None,
         "sampled_frames": len(thumbs),
         "frames": frames,
     }

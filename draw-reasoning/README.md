@@ -7,6 +7,8 @@
 
 ## 設計原則
 
+- **文字提示詞**：整張圖有一個提示詞（可以修改，保留歷史），每個動作也可以附一句說明，
+  讓模型學會「依照文字畫」以及「為什麼這樣畫、為什麼要修正」。
 - **階段式 + 先規劃**：步驟以繪畫階段為單位（草稿 → 線稿 → 上色 → 陰影），每個階段可以先寫一句規劃；
   同時保留逐筆資料，留給之後的實驗。
 - **修正動作一定要完整記錄**：erase、undo 是模型學會「推理」的關鍵，任何工具都不會過濾掉它們。
@@ -37,7 +39,7 @@ draw-reasoning/
 ```bash
 cd draw-reasoning
 python3 tools/video_to_stages.py samples/video/timelapse.mp4 --out out/keyframes \
-    --stage-marks "0:sketch,3.6:lineart,6.4:color,8.4:shading"
+    --stage-marks "0:sketch,3.6:lineart,6.4:color,8.4:shading" --prompt "一間紅屋頂的小房子，左上角有太陽"
 python3 tools/build_dataset.py --recorder samples/recorder --video out/keyframes --out out/dataset
 ```
 
@@ -55,6 +57,8 @@ python3 -m http.server 8000   # 然後打開 http://<電腦 IP>:8000/recorder/
 
 | 功能 | 說明 |
 |---|---|
+| 提示詞 | 最上面的輸入框。**畫第一筆之前必填**；之後可以修改，每次修改都會記下是在第幾個動作之後改的 |
+| 下一筆的說明 | 選填。打好字後，下一個動作（筆畫、擦除或復原）會帶上這句說明，用完自動清空；按「加到上一筆」則是補在剛畫完的那一筆 |
 | 筆刷／橡皮擦 | 兩者的粗細各自記憶。快捷鍵 `B`／`E` |
 | 顏色 | 色票或自訂顏色 |
 | 復原 | 按鈕或 `Ctrl/⌘ + Z`。沒有重做（redo） |
@@ -74,13 +78,17 @@ python3 -m http.server 8000   # 然後打開 http://<電腦 IP>:8000/recorder/
 {
   "format": "draw-reasoning/session",
   "version": 1,
-  "session_id": "20261002-102003-0b77",
-  "created_at": "2026-10-02T10:20:03.550Z",
-  "exported_at": "2026-10-02T10:20:45.226Z",
+  "session_id": "20261002-111228-ef18",
+  "created_at": "2026-10-02T11:12:28.000Z",
+  "exported_at": "2026-10-02T11:13:10.000Z",
   "canvas": { "width": 1024, "height": 1024, "background": "#ffffff" },
   "source": { "kind": "recorder", "author": "", "consent": "self" },
   "settings": { "snapshot_every": 1 },
   "stages": ["sketch", "lineart", "color", "shading"],
+  "prompt_events": [
+    { "after_action_id": 0, "prompt": "一間小房子，旁邊有太陽" },
+    { "after_action_id": 8, "prompt": "一間紅屋頂的小房子，左上角有太陽" }
+  ],
   "stage_events": [
     { "after_action_id": 0, "stage": "sketch", "note": "先抓房子和太陽的大輪廓" },
     { "after_action_id": 8, "stage": "lineart", "note": "用深色把輪廓描乾淨" }
@@ -90,10 +98,10 @@ python3 -m http.server 8000   # 然後打開 http://<電腦 IP>:8000/recorder/
   ],
   "actions": [
     { "id": 1, "type": "stroke", "points": [[0.248, 0.4696, 0.4, 74], ...],
-      "color": "#9e9e9e", "width": 0.0029, "target_id": null, "stage": "sketch", "pointer": "pen", "t": 74 },
-    { "id": 4, "type": "erase", "points": [...], "color": null, "width": 0.0156, ... },
+      "color": "#9e9e9e", "width": 0.0029, "target_id": null, "stage": "sketch", "pointer": "pen", "t": 74, "caption": null },
+    { "id": 4, "type": "erase", "points": [...], "color": null, "width": 0.0156, ..., "caption": "擦掉多餘的中線" },
     { "id": 6, "type": "undo", "points": [], "color": null, "width": null, "target_id": 5,
-      "stage": "sketch", "pointer": null, "t": 12362 }
+      "stage": "sketch", "pointer": null, "t": 12362, "caption": "太陽太靠右，構圖不平衡，復原" }
   ]
 }
 ```
@@ -111,9 +119,12 @@ python3 -m http.server 8000   # 然後打開 http://<電腦 IP>:8000/recorder/
 | `stage` | 動作發生時的階段標籤 |
 | `pointer` | `pen`／`touch`／`mouse`；undo 為 null |
 | `t` | 動作開始的時間（毫秒，同上）。undo 沒有點，所以要靠這個欄位 |
+| `caption` | 這個動作的文字說明，沒有就是 null |
 
 - **undo 規則**：一律復原「最後一個還沒被復原的 stroke 或 erase」，連續按就一路往回。
   沒有 redo，所以被復原的動作不會再回來。
+- **prompt_events**：提示詞的修改歷史。`after_action_id` 之後的動作都用這一版，直到下一次修改；
+  第一筆一定是 `after_action_id: 0`。中間沒有新動作就連續修改的話，只會留下最後的內容。
 - **stage_events**：每次切換階段記一筆；`after_action_id` 是切換前最後一個動作的 id，`note` 是那個階段的規劃。
 - **snapshots**：`after_action_id` 這個動作完成後的畫布 PNG。`reason` 為 `auto`／`stage_change`／`export`。
 
@@ -152,6 +163,7 @@ python3 tools/video_to_stages.py my_timelapse.mp4 --out data/keyframes/my_timela
 | `--size` | 1024 | 輸出長邊上限，0 代表原尺寸（不會放大） |
 | `--crop` | 無 | 螢幕錄影時先裁出畫布，ffmpeg 格式 `w:h:x:y` |
 | `--stage-marks` | 無 | 依秒數標階段；沒標的話 `stage` 是 null |
+| `--prompt` | 無 | 這支影片在畫什麼（文字提示詞） |
 | `--ref` | 影片檔名 | 來源名稱 |
 | `--author`／`--consent` | 空／`self` | 來源與授權 |
 | `--overwrite` | 否 | 輸出資料夾已有關鍵幀時覆蓋 |
@@ -166,6 +178,7 @@ python3 tools/video_to_stages.py my_timelapse.mp4 --out data/keyframes/my_timela
   "version": 1,
   "source": { "kind": "video", "ref": "timelapse", "file": "timelapse.mp4", "author": "", "consent": "self" },
   "video": { "width": 512, "height": 512, "duration": 9.8 },
+  "prompt": "一間紅屋頂的小房子，左上角有太陽",
   "params": { "fps": 2.0, "threshold": 0.003, "max_frames": 64, "size": 1024, "crop": null, "stage_marks": "..." },
   "sampled_frames": 20,
   "frames": [
@@ -176,7 +189,7 @@ python3 tools/video_to_stages.py my_timelapse.mp4 --out data/keyframes/my_timela
 ```
 
 `index` 是抽幀後的序號，`t` 是秒數，`diff` 是和上一張關鍵幀的差異。
-`stage` 可以事後直接在檔案裡修改，build_dataset 會照用。
+`stage` 和 `prompt` 都可以事後直接在檔案裡修改，build_dataset 會照用。
 
 ---
 
@@ -213,15 +226,18 @@ out/dataset/
 
 ```jsonc
 // level "action"：每個 stroke / erase / undo 一筆
-{ "id": "rec/20261002-102003-0b77/a000006", "level": "action",
-  "source": { "kind": "recorder", "ref": "20261002-102003-0b77", "author": "…", "consent": "self",
-              "session_file": "sessions/20261002-102003-0b77.json" },
+{ "id": "rec/20261002-111228-ef18/a000006", "level": "action",
+  "source": { "kind": "recorder", "ref": "20261002-111228-ef18", "author": "…", "consent": "self",
+              "session_file": "sessions/20261002-111228-ef18.json" },
   "stage": "sketch",
-  "before": { "image": "images/rec-20261002-102003-0b77/000005.png", "replay": [] },
-  "target": { "kind": "action", "action": { "id": 6, "type": "undo", "target_id": 5, … } } }
+  "prompt": "一間小房子，旁邊有太陽",
+  "before": { "image": "images/rec-20261002-111228-ef18/000005.png", "replay": [] },
+  "target": { "kind": "action",
+              "action": { "id": 6, "type": "undo", "target_id": 5, "caption": "太陽太靠右，構圖不平衡，復原", … } } }
 
 // level "stage"：上一階段結束的畫布 → 這一階段結束的畫布
-{ "id": "rec/20261002-102003-0b77/s02", "level": "stage", "source": { … }, "stage": "lineart",
+{ "id": "rec/20261002-111228-ef18/s02", "level": "stage", "source": { … }, "stage": "lineart",
+  "prompt": "一間紅屋頂的小房子，左上角有太陽",
   "before": { "image": "images/rec-…/000008.png", "replay": [] },
   "target": { "kind": "canvas", "image": "images/rec-…/000015.png", "replay": [],
               "plan": "用深色把輪廓描乾淨", "actions": { "first": 9, "last": 15, "count": 7 } } }
@@ -229,6 +245,7 @@ out/dataset/
 // level "keyframe"：影片相鄰兩張關鍵幀
 { "id": "vid/timelapse/k0003", "level": "keyframe",
   "source": { "kind": "video", "ref": "timelapse", "author": "", "consent": "self" }, "stage": "lineart",
+  "prompt": "一間紅屋頂的小房子，左上角有太陽",
   "before": { "image": "images/vid-timelapse/000003.png", "replay": [], "t": 3.5 },
   "target": { "kind": "canvas", "image": "images/vid-timelapse/000004.png", "replay": [], "t": 5.5 } }
 ```
@@ -242,7 +259,9 @@ out/dataset/
 - 訓練時用 `canvas_replay.render(session, replay, base_image)` 還原，session 在 `source.session_file`。
 - 加上 `--render` 時，replay 不為空的畫布會直接畫成 `render_<id>.png`，並標上 `"rendered": true`。
 
-`stage` 沒有標籤時是 `"unknown"`。
+- `prompt`：逐筆是畫那一筆時有效的版本；階段級是那個階段第一筆時的版本；影片是 `--prompt`。沒有就是 null。
+- 動作的文字說明在 `target.action.caption`。
+- `stage` 沒有標籤時是 `"unknown"`。
 
 ---
 
