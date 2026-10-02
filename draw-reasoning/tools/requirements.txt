@@ -1,0 +1,2 @@
+# 只有 build_dataset.py --render 和 canvas_replay.render() 需要；其餘工具只用標準函式庫 + ffmpeg
+Pillow>=10
