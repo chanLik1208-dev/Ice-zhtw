@@ -28,7 +28,7 @@ from pathlib import Path
 FORMAT = "draw-reasoning/keyframes"
 FORMAT_VERSION = 1
 THUMB = 64
-KNOWN_STAGES = ("sketch", "lineart", "color", "shading")
+KNOWN_STAGES = ("sketch", "lineart", "base", "shading", "highlight", "detail")
 SELECT_CHUNK = 100  # 每次 ffmpeg select 最多挑幾張，避免表達式太長
 
 

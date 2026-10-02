@@ -29,6 +29,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from canvas_replay import effective_after, render  # noqa: E402
 
 SESSION_FORMAT = "draw-reasoning/session"
+# 第 1 版只有四個階段，「上色」對應到現在的「底色」
+STAGE_ALIASES = {"color": "base"}
 KEYFRAMES_FORMAT = "draw-reasoning/keyframes"
 
 
@@ -86,7 +88,7 @@ def validate_session(session: dict, label: str) -> list[str]:
         if a["id"] <= last_id:
             problems.append(f"動作 id {a['id']} 沒有遞增")
         last_id = a["id"]
-        if a["type"] not in ("stroke", "erase", "undo"):
+        if a["type"] not in ("stroke", "erase", "fill", "undo"):
             problems.append(f"動作 {a['id']} 的 type 不明：{a['type']}")
         if a["type"] == "undo":
             tid = a.get("target_id")
@@ -98,6 +100,8 @@ def validate_session(session: dict, label: str) -> list[str]:
         else:
             if not a["points"]:
                 problems.append(f"動作 {a['id']} 沒有任何點")
+            if a["type"] == "fill" and (a.get("tolerance") is None or not a.get("color")):
+                problems.append(f"填色 {a['id']} 缺少 tolerance 或 color")
             seen.add(a["id"])
     for p in problems:
         print(f"[{label}] 警告：{p}", file=sys.stderr)
@@ -128,6 +132,9 @@ class Builder:
         session_path, store = find_session(path)
         session = json.loads(session_path.read_text(encoding="utf-8"))
         sid = session["session_id"]
+        for item in session["actions"] + session.get("stage_events", []) + session.get("snapshots", []):
+            if item.get("stage") in STAGE_ALIASES:
+                item["stage"] = STAGE_ALIASES[item["stage"]]
         validate_session(session, sid)
 
         prefix = f"rec-{sid}"

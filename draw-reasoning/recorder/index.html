@@ -37,14 +37,28 @@
   #width-val { min-width: 2.5em; text-align: right; font-variant-numeric: tabular-nums; }
   #status { width: 100%; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   #status .warn { color: var(--warn); }
-  main { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px; }
-  #canvas { display: block; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); touch-action: none; }
+  #zoom-val { min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }
+  main { flex: 1; min-height: 0; position: relative; overflow: hidden; touch-action: none; }
+  main.panning { cursor: grab; }
+  #board { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
+  #board canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #canvas { background: #fff; }
+  #overlay { pointer-events: none; }
+  main.pick #canvas { cursor: crosshair; }
   dialog { border: 1px solid var(--line); border-radius: 12px; padding: 16px; max-width: min(420px, 92vw); }
   dialog::backdrop { background: rgba(0, 0, 0, .35); }
   dialog h2 { margin: 0 0 10px; font-size: 16px; }
   dialog .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
   dialog .row label { min-width: 4em; }
   dialog .row input[type=text] { flex: 1; }
+  #more-toggle { display: none; }
+  /* 手機：次要控制收進「更多」，把畫面留給畫布 */
+  @media (max-width: 700px) {
+    #more-toggle { display: inline-block; }
+    body:not(.show-more) .secondary { display: none !important; }
+    #toolbar { gap: 6px 8px; padding-top: 6px; padding-bottom: 6px; }
+    #status { font-size: 11px; }
+  }
   #export-msg { color: var(--muted); font-size: 13px; }
 </style>
 </head>
@@ -54,30 +68,41 @@
   <div class="group">
     <button id="tool-stroke" data-tool="stroke" title="筆刷（B）">筆刷</button>
     <button id="tool-erase" data-tool="erase" title="橡皮擦（E）">橡皮擦</button>
+    <button id="tool-fill" data-tool="fill" title="漆桶（G）">漆桶</button>
+    <button id="tool-pick" data-tool="pick" title="滴管（I，或按住 Alt 點畫布）">滴管</button>
     <button id="undo" title="復原（Ctrl/⌘ + Z）">復原</button>
+    <button id="more-toggle" title="顯示其他設定">更多 ▾</button>
   </div>
   <div class="group">
     <input type="color" id="color" value="#222222" title="顏色">
-    <span id="swatches" class="group"></span>
+    <span id="swatches" class="group secondary"></span>
   </div>
-  <label class="group">粗細 <input type="range" id="width" min="1" max="120" step="1"><span id="width-val"></span></label>
-  <div class="group" id="stages"></div>
-  <input type="text" id="note" placeholder="這個階段打算畫什麼（選填）" autocomplete="off">
-  <div class="group" style="flex: 1 1 260px;">
+  <label class="group secondary"><span id="width-label">粗細</span> <input type="range" id="width" min="1" max="120" step="1"><span id="width-val"></span></label>
+  <label class="group secondary">不透明度 <input type="range" id="opacity" min="5" max="100" step="5"><span id="opacity-val"></span></label>
+  <label class="group secondary" title="0 為關閉；數字越大線條越平順，但會稍微落後筆尖">防手抖 <input type="range" id="stabilizer" min="0" max="10" step="1" value="0"><span id="stabilizer-val">0</span></label>
+  <div class="group secondary">
+    <button id="zoom-out" title="縮小">−</button>
+    <span id="zoom-val">100%</span>
+    <button id="zoom-in" title="放大">＋</button>
+    <button id="zoom-reset" title="整張畫布塞滿畫面（0）">重設檢視</button>
+  </div>
+  <div class="group secondary" id="stages"></div>
+  <input type="text" id="note" class="secondary" placeholder="這個階段打算畫什麼（選填）" autocomplete="off">
+  <div class="group secondary" style="flex: 1 1 260px;">
     <input type="text" id="caption" placeholder="下一筆的說明（選填）" autocomplete="off">
     <button id="caption-last" title="把說明加到剛畫完的那一筆">加到上一筆</button>
   </div>
-  <div class="group">
+  <div class="group secondary">
     <label class="group">每 <input type="number" id="snap-every" min="1" step="1"> 筆截圖</label>
     <label class="group"><input type="checkbox" id="pen-only"> 只用觸控筆</label>
   </div>
-  <div class="group">
+  <div class="group secondary">
     <button id="export">匯出</button>
     <button id="new-session">新畫布</button>
   </div>
   <div id="status"></div>
 </header>
-<main><canvas id="canvas"></canvas></main>
+<main><div id="board"><canvas id="canvas"></canvas><canvas id="overlay"></canvas></div></main>
 
 <dialog id="export-dialog">
   <h2>匯出</h2>
@@ -107,20 +132,27 @@
 // 常數與格式
 // ---------------------------------------------------------------------------
 const FORMAT = 'draw-reasoning/session';
-const FORMAT_VERSION = 1;
+const FORMAT_VERSION = 2;
 const CANVAS_SIZE = 1024;
 const BACKGROUND = '#ffffff';
-const STAGES = [['sketch', '草稿'], ['lineart', '線稿'], ['color', '上色'], ['shading', '陰影']];
+const STAGES = [['sketch', '草稿'], ['lineart', '線稿'], ['base', '底色'], ['shading', '陰影'],
+                ['highlight', '高光'], ['detail', '細節']];
+const FILL_EXPAND = 1;      // 漆桶填完往外擴幾 px，蓋住線條邊緣的反鋸齒
+const ZOOM_MIN = 0.5, ZOOM_MAX = 8;
 const XY_DIGITS = 4;        // 座標：小數 4 位（1024 畫布約 0.1px）
 const PRESSURE_DIGITS = 3;  // 壓力：小數 3 位
 const WIDTH_DIGITS = 4;     // 粗細：以畫布寬度為 1
-const SWATCHES = ['#222222', '#9e9e9e', '#ffffff', '#e53935', '#fb8c00', '#fdd835',
-                  '#43a047', '#1e88e5', '#8e24aa', '#8d6e63', '#ffcc80'];
+const SWATCHES = ['#222222', '#5d4037', '#9e9e9e', '#ffffff', '#ffe3d3', '#f2b8a0', '#f48fb1',
+                  '#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#3949ab', '#8e24aa'];
 const DB_NAME = 'draw-reasoning-recorder';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const overlay = $('overlay');            // 正在畫的這一筆先畫在這裡，放開才疊回主畫布
+const octx = overlay.getContext('2d');
+const scratch = document.createElement('canvas');  // 重畫半透明筆畫用
+const sctx = scratch.getContext('2d');
 
 const round = (v, digits) => { const m = 10 ** digits; return Math.round(v * m) / m; };
 const pad6 = (n) => String(n).padStart(6, '0');
@@ -131,6 +163,10 @@ const pad6 = (n) => String(n).padStart(6, '0');
 //   - 線段線寬 = width * 畫布寬 * 兩端壓力係數的平均
 //   - 壓力係數：pen 為 0.15 + 0.85 * pressure，其餘（滑鼠、觸控）固定為 1
 //   - erase 用背景色畫
+//   - 有 smooth（防手抖）時畫 smooth.points，否則畫 points
+//   - 每一筆先不透明地畫在空白圖層，再以 opacity（預設 1）疊上去（半透明時交叉處不會變深）
+//   - fill：從點擊位置做 4 連通填色，RGB 每個色版和起點顏色相差 <= tolerance 的都算同一區，
+//     再往外擴 FILL_EXPAND px（8 連通），以 opacity 混色
 // ---------------------------------------------------------------------------
 function pressureFactor(pressure, pointer) {
   if (pointer !== 'pen') return 1;
@@ -161,18 +197,98 @@ function drawSegment(c, action, p0, p1) {
   c.stroke();
 }
 
+const pointsOf = (action) => (action.smooth ? action.smooth.points : action.points);
+const opacityOf = (action) => (action.opacity == null ? 1 : action.opacity);
+
 function drawAction(c, action) {
-  const pts = action.points;
+  const pts = pointsOf(action);
   if (!pts.length) return;
   drawDot(c, action, pts[0]);
   for (let i = 1; i < pts.length; i++) drawSegment(c, action, pts[i - 1], pts[i]);
+}
+
+function hexToRGB(hex) {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h.split('').map((ch) => ch + ch).join('');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function floodFill(c, action) {
+  const W = c.canvas.width, H = c.canvas.height;
+  const [px, py] = action.points[0];
+  const sx = Math.floor(px * W), sy = Math.floor(py * H);
+  if (sx < 0 || sy < 0 || sx >= W || sy >= H) return;
+  const img = c.getImageData(0, 0, W, H);
+  const d = img.data;
+  const i0 = (sy * W + sx) * 4;
+  const r0 = d[i0], g0 = d[i0 + 1], b0 = d[i0 + 2];
+  const tol = action.tolerance;
+  const match = (p) => {
+    const i = p * 4;
+    return Math.abs(d[i] - r0) <= tol && Math.abs(d[i + 1] - g0) <= tol && Math.abs(d[i + 2] - b0) <= tol;
+  };
+  const mask = new Uint8Array(W * H);
+  const stack = new Int32Array(W * H);
+  let top = 0;
+  const start = sy * W + sx;
+  mask[start] = 1;
+  stack[top++] = start;
+  while (top) {
+    const p = stack[--top];
+    const x = p % W;
+    if (x > 0 && !mask[p - 1] && match(p - 1)) { mask[p - 1] = 1; stack[top++] = p - 1; }
+    if (x < W - 1 && !mask[p + 1] && match(p + 1)) { mask[p + 1] = 1; stack[top++] = p + 1; }
+    if (p >= W && !mask[p - W] && match(p - W)) { mask[p - W] = 1; stack[top++] = p - W; }
+    if (p < W * (H - 1) && !mask[p + W] && match(p + W)) { mask[p + W] = 1; stack[top++] = p + W; }
+  }
+  let grown = mask;
+  for (let n = 0; n < FILL_EXPAND; n++) {
+    const next = new Uint8Array(grown);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const p = y * W + x;
+        if (!grown[p]) continue;
+        for (let dy = -1; dy <= 1; dy++) {
+          const yy = y + dy;
+          if (yy < 0 || yy >= H) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx;
+            if (xx >= 0 && xx < W) next[yy * W + xx] = 1;
+          }
+        }
+      }
+    }
+    grown = next;
+  }
+  const [fr, fg, fb] = hexToRGB(action.color);
+  const a = opacityOf(action);
+  for (let p = 0; p < W * H; p++) {
+    if (!grown[p]) continue;
+    const i = p * 4;
+    d[i] = Math.round(d[i] * (1 - a) + fr * a);
+    d[i + 1] = Math.round(d[i + 1] * (1 - a) + fg * a);
+    d[i + 2] = Math.round(d[i + 2] * (1 - a) + fb * a);
+  }
+  c.putImageData(img, 0, 0);
+}
+
+// 和即時繪製走完全相同的路徑（透明圖層 → 疊回去），重畫結果才會和截圖逐像素一致
+function paintAction(c, action) {
+  if (action.type === 'fill') return floodFill(c, action);
+  const alpha = opacityOf(action);
+  scratch.width = c.canvas.width;
+  scratch.height = c.canvas.height;
+  drawAction(sctx, action);
+  c.globalAlpha = alpha;
+  c.drawImage(scratch, 0, 0);
+  c.globalAlpha = 1;
 }
 
 function redraw() {
   ctx.fillStyle = session.canvas.background;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   for (const a of session.actions) {
-    if (a.type !== 'undo' && !undone.has(a.id)) drawAction(ctx, a);
+    if (a.type !== 'undo' && !undone.has(a.id)) paintAction(ctx, a);
   }
 }
 
@@ -263,7 +379,13 @@ let sinceSnap = 0;            // 距離上一張截圖的動作數
 const pendingSnaps = new Map();
 const canvasPool = [];
 
-const tool = { current: 'stroke', width: { stroke: 4, erase: 24 }, color: '#222222' };
+const tool = {
+  current: 'stroke',
+  width: { stroke: 4, erase: 24, fill: 32 },     // fill 的「粗細」就是容差
+  opacity: { stroke: 100, erase: 100, fill: 100 },
+  stabilizer: 0,
+  color: '#222222',
+};
 let penOnly = false;
 
 function makeSessionId(d) {
@@ -293,8 +415,9 @@ function newSession() {
 
 function loadSessionState() {
   t0 = Date.parse(session.created_at);
-  canvas.width = session.canvas.width;
-  canvas.height = session.canvas.height;
+  session.version = FORMAT_VERSION;
+  canvas.width = overlay.width = session.canvas.width;
+  canvas.height = overlay.height = session.canvas.height;
   undone = new Set(session.actions.filter((a) => a.type === 'undo').map((a) => a.target_id));
   snapIds = new Set(session.snapshots.map((s) => s.after_action_id));
   const lastEvent = session.stage_events[session.stage_events.length - 1];
@@ -362,12 +485,16 @@ function commitAction(fields) {
     id: lastActionId() + 1,
     type: fields.type,
     points: fields.points,
+    smooth: fields.smooth || null,
     color: fields.color,
     width: fields.width,
+    opacity: fields.opacity == null ? null : fields.opacity,
+    tolerance: fields.tolerance == null ? null : fields.tolerance,
     target_id: fields.target_id,
     stage: fields.stage,
     pointer: fields.pointer,
     t: fields.t,
+    zoom: fields.zoom == null ? null : fields.zoom,
     caption: takeCaption(),
   };
   session.actions.push(action);
@@ -441,9 +568,63 @@ function setStage(stage) {
 }
 
 // ---------------------------------------------------------------------------
-// 指標輸入（滑鼠、觸控、觸控筆）
+// 檢視：縮放與平移（只改顯示，畫布內部解析度和座標都不變）
 // ---------------------------------------------------------------------------
-let active = null;  // { pointerId, rect, draft }
+const main = document.querySelector('main');
+const board = $('board');
+const view = { fit: 600, scale: 1, x: 0, y: 0 };
+
+function applyView() {
+  const size = view.fit * view.scale;
+  board.style.width = `${size}px`;
+  board.style.height = `${size}px`;
+  board.style.transform = `translate(${view.x}px, ${view.y}px)`;
+  $('zoom-val').textContent = `${Math.round(view.scale * 100)}%`;
+}
+
+function resetView() {
+  view.fit = Math.max(100, Math.floor(Math.min(main.clientWidth, main.clientHeight) - 16));
+  view.scale = 1;
+  view.x = (main.clientWidth - view.fit) / 2;
+  view.y = (main.clientHeight - view.fit) / 2;
+  applyView();
+}
+
+// 以 main 內的 (px, py) 為中心縮放
+function zoomAt(px, py, factor) {
+  const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, view.scale * factor));
+  const f = next / view.scale;
+  view.x = px - (px - view.x) * f;
+  view.y = py - (py - view.y) * f;
+  view.scale = next;
+  applyView();
+}
+
+function zoomCenter(factor) { zoomAt(main.clientWidth / 2, main.clientHeight / 2, factor); }
+
+function mainXY(e) {
+  const r = main.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+
+main.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const [px, py] = mainXY(e);
+  // 觸控板捏合會送出 ctrlKey 的 wheel 事件，變化量比較小
+  zoomAt(px, py, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+}, { passive: false });
+
+// ---------------------------------------------------------------------------
+// 指標輸入（滑鼠、觸控、觸控筆）
+//   - 觸控筆：畫
+//   - 手指：一指畫（勾選「只用觸控筆」時一指平移），兩指捏合縮放／平移；
+//     第二根手指放下時，第一根手指剛開始的那一筆會取消，不會記錄
+//   - 滑鼠：左鍵畫；中鍵或按住空白鍵拖曳平移；Alt + 左鍵取色
+// ---------------------------------------------------------------------------
+let active = null;    // 正在畫的一筆：{ pointerId, rect, draft, raw }
+let gesture = null;   // 正在平移／縮放：{ ids: Set, cx, cy, dist }
+const pointers = new Map();
+let spaceDown = false;
 
 function toPoint(ev, rect) {
   let pressure = ev.pressure;
@@ -456,69 +637,214 @@ function toPoint(ev, rect) {
   ];
 }
 
-function pushPoint(ev) {
-  const p = toPoint(ev, active.rect);
-  const pts = active.draft.points;
+const samePoint = (a, b) => a && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+
+// 把一個點加到畫的那條線上（有防手抖時是平滑後的線），並畫在 overlay
+function drawTo(p) {
+  const pts = pointsOf(active.draft);
   const prev = pts[pts.length - 1];
-  if (prev && prev[0] === p[0] && prev[1] === p[1] && prev[2] === p[2]) return;
-  if (prev) drawSegment(ctx, active.draft, prev, p);
-  else drawDot(ctx, active.draft, p);
+  if (samePoint(prev, p)) return;
+  if (prev) drawSegment(octx, active.draft, prev, p);
+  else drawDot(octx, active.draft, p);
   pts.push(p);
 }
 
-canvas.addEventListener('pointerdown', (e) => {
-  if (active) return;
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (penOnly && e.pointerType !== 'pen') return;
-  e.preventDefault();
-  if (!session.actions.length && !currentPrompt().trim()) {
-    // 第一筆之前一定要先有提示詞
-    $('prompt').classList.add('need');
-    $('prompt').focus();
-    return;
-  }
-  // preventDefault 會讓焦點留在輸入框，快捷鍵就失效了；手機上也順便收起鍵盤
-  if (document.activeElement && document.activeElement.matches('input, select, textarea')) {
-    document.activeElement.blur();
-  }
-  try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* 舊瀏覽器 */ }
+function pushPoint(ev) {
+  const p = toPoint(ev, active.rect);
+  const raw = active.draft.points;
+  if (samePoint(raw[raw.length - 1], p)) return;
+  const smooth = active.draft.smooth;
+  if (!smooth) return drawTo(p);  // 沒有防手抖時，畫的線就是原始點（drawTo 會加進 points）
+  raw.push(p);
+  // 防手抖：指數移動平均，k 越小越平順
+  const k = 1 / (1 + 0.5 * smooth.strength);
+  const prev = smooth.points[smooth.points.length - 1];
+  if (!prev) return drawTo(p);
+  drawTo([
+    round(prev[0] + (p[0] - prev[0]) * k, XY_DIGITS),
+    round(prev[1] + (p[1] - prev[1]) * k, XY_DIGITS),
+    round(prev[2] + (p[2] - prev[2]) * k, PRESSURE_DIGITS),
+    p[3],
+  ]);
+}
+
+const currentZoom = () => round(view.scale, 2);
+
+function needPrompt() {
+  if (session.actions.length || currentPrompt().trim()) return false;
+  // 第一筆之前一定要先有提示詞
+  $('prompt').classList.add('need');
+  $('prompt').focus();
+  return true;
+}
+
+function pickColor(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / rect.width * canvas.width);
+  const y = Math.floor((e.clientY - rect.top) / rect.height * canvas.height);
+  if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+  const d = ctx.getImageData(x, y, 1, 1).data;
+  tool.color = '#' + [d[0], d[1], d[2]].map((v) => v.toString(16).padStart(2, '0')).join('');
+  setTool('stroke');
+}
+
+function fillAt(e) {
+  const p = toPoint(e, canvas.getBoundingClientRect());
+  if (p[0] < 0 || p[1] < 0 || p[0] >= 1 || p[1] >= 1) return;
+  const fields = {
+    type: 'fill', points: [p], smooth: null, color: tool.color, width: null,
+    opacity: tool.opacity.fill / 100, tolerance: tool.width.fill, target_id: null,
+    stage: currentStage, pointer: e.pointerType || 'mouse', t: p[3], zoom: currentZoom(),
+  };
+  floodFill(ctx, fields);
+  commitAction(fields);
+}
+
+function startStroke(e) {
   const type = tool.current;
+  try { main.setPointerCapture(e.pointerId); } catch (_) { /* 舊瀏覽器 */ }
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  const opacity = tool.opacity[type] / 100;
+  overlay.style.opacity = opacity;
   active = {
     pointerId: e.pointerId,
+    pointerType: e.pointerType,
     rect: canvas.getBoundingClientRect(),
     draft: {
       type,
       points: [],
+      smooth: tool.stabilizer > 0 ? { strength: tool.stabilizer, points: [] } : null,
       color: type === 'stroke' ? tool.color : null,
       width: round(tool.width[type] / canvas.width, WIDTH_DIGITS),
+      opacity,
+      tolerance: null,
       target_id: null,
       stage: currentStage,
       pointer: e.pointerType || 'mouse',
       t: 0,
+      zoom: currentZoom(),
     },
   };
   pushPoint(e);
   active.draft.t = active.draft.points[0][3];
+}
+
+function finishStroke() {
+  const { draft } = active;
+  active = null;
+  // 防手抖的線要補到筆尖真正停下的位置
+  if (draft.smooth) {
+    const last = draft.points[draft.points.length - 1];
+    active = { draft };
+    drawTo(last);
+    active = null;
+  }
+  ctx.globalAlpha = draft.opacity;
+  ctx.drawImage(overlay, 0, 0);
+  ctx.globalAlpha = 1;
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  commitAction(draft);
+}
+
+function cancelStroke() {
+  active = null;
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+function startGesture(ids) {
+  gesture = { ids: new Set(ids) };
+  resetGestureAnchor();
+  main.classList.add('panning');
+}
+
+function resetGestureAnchor() {
+  const pts = [...gesture.ids].map((id) => pointers.get(id)).filter(Boolean);
+  if (!pts.length) return;
+  gesture.cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+  gesture.cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  gesture.dist = pts.length >= 2 ? Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]) : 0;
+}
+
+function moveGesture() {
+  const pts = [...gesture.ids].map((id) => pointers.get(id)).filter(Boolean);
+  if (!pts.length) return;
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+  const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  view.x += cx - gesture.cx;
+  view.y += cy - gesture.cy;
+  if (pts.length >= 2 && gesture.dist > 0) {
+    const dist = Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]);
+    zoomAt(cx, cy, dist / gesture.dist);
+  } else {
+    applyView();
+  }
+  resetGestureAnchor();
+}
+
+function endGesturePointer(id) {
+  gesture.ids.delete(id);
+  if (!gesture.ids.size) {
+    gesture = null;
+    main.classList.remove('panning');
+  } else {
+    resetGestureAnchor();
+  }
+}
+
+main.addEventListener('pointerdown', (e) => {
+  pointers.set(e.pointerId, mainXY(e));
+  e.preventDefault();
+  // preventDefault 會讓焦點留在輸入框，快捷鍵就失效了；手機上也順便收起鍵盤
+  if (document.activeElement && document.activeElement.matches('input, select, textarea')) {
+    document.activeElement.blur();
+  }
+  if (gesture) {
+    if (e.pointerType === 'touch') { gesture.ids.add(e.pointerId); resetGestureAnchor(); }
+    return;
+  }
+  if (e.pointerType === 'touch') {
+    if (active && active.pointerType === 'touch') {
+      // 第二根手指：剛才那一筆其實是捏合的開始
+      const first = active.pointerId;
+      cancelStroke();
+      startGesture([first, e.pointerId]);
+      return;
+    }
+    if (penOnly) { startGesture([e.pointerId]); return; }
+  }
+  if (active) return;
+  if (e.pointerType === 'mouse' && (e.button === 1 || (e.button === 0 && spaceDown))) {
+    startGesture([e.pointerId]);
+    return;
+  }
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (penOnly && e.pointerType !== 'pen') return;
+  if (e.target !== canvas) return;
+  if (tool.current === 'pick' || e.altKey) { pickColor(e); return; }
+  if (needPrompt()) return;
+  if (tool.current === 'fill') { fillAt(e); return; }
+  startStroke(e);
 });
 
-canvas.addEventListener('pointermove', (e) => {
+main.addEventListener('pointermove', (e) => {
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, mainXY(e));
+  if (gesture && gesture.ids.has(e.pointerId)) { moveGesture(); return; }
   if (!active || e.pointerId !== active.pointerId) return;
   e.preventDefault();
   const coalesced = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
   for (const ev of (coalesced.length ? coalesced : [e])) pushPoint(ev);
 });
 
-function finishStroke(e) {
-  if (!active || e.pointerId !== active.pointerId) return;
-  const { draft } = active;
-  active = null;
-  commitAction(draft);
+function pointerEnd(e) {
+  pointers.delete(e.pointerId);
+  if (gesture && gesture.ids.has(e.pointerId)) { endGesturePointer(e.pointerId); return; }
+  if (active && e.pointerId === active.pointerId) finishStroke();
 }
 
-canvas.addEventListener('pointerup', finishStroke);
-canvas.addEventListener('pointercancel', finishStroke);
-canvas.addEventListener('lostpointercapture', finishStroke);
-canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+main.addEventListener('pointerup', pointerEnd);
+main.addEventListener('pointercancel', pointerEnd);
+main.addEventListener('lostpointercapture', pointerEnd);
+main.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // ---------------------------------------------------------------------------
 // 匯出：session.json + 截圖 zip（不壓縮，PNG 本身已壓縮）
@@ -695,9 +1021,14 @@ function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function stageLabel(stage) {
+  const found = STAGES.find((s) => s[0] === stage);
+  return found ? found[1] : stage;
+}
+
 function updateStatus() {
   if (!session) return;
-  const counts = { stroke: 0, erase: 0, undo: 0 };
+  const counts = { stroke: 0, erase: 0, fill: 0, undo: 0 };
   for (const a of session.actions) counts[a.type]++;
   const pending = pendingSnaps.size ? `（處理中 ${pendingSnaps.size}）` : '';
   const store = db ? '已自動暫存' : '<span class="warn">此瀏覽器無法暫存，重新整理會遺失，請記得匯出</span>';
@@ -706,17 +1037,25 @@ function updateStatus() {
   const caption = last && last.caption ? ` · 上一筆說明：「${escapeHTML(last.caption)}」` : '';
   const prompts = session.prompt_events.length > 1 ? ` · 提示詞改過 ${session.prompt_events.length - 1} 次` : '';
   $('status').innerHTML =
-    `${session.session_id} · 動作 ${session.actions.length}` +
-    `（筆畫 ${counts.stroke}／擦除 ${counts.erase}／復原 ${counts.undo}）` +
+    `${stageLabel(currentStage)} · ${session.session_id} · 動作 ${session.actions.length}` +
+    `（筆畫 ${counts.stroke}／擦除 ${counts.erase}／填色 ${counts.fill}／復原 ${counts.undo}）` +
     ` · 截圖 ${session.snapshots.length}${pending}${prompts}${caption} · ${store}${err}`;
 }
 
 function updateUI() {
-  for (const t of ['stroke', 'erase']) $(`tool-${t}`).classList.toggle('active', tool.current === t);
+  for (const t of ['stroke', 'erase', 'fill', 'pick']) $(`tool-${t}`).classList.toggle('active', tool.current === t);
   for (const b of $('stages').children) b.classList.toggle('active', b.dataset.stage === currentStage);
+  main.classList.toggle('pick', tool.current === 'pick');
   $('undo').disabled = !lastEffectiveAction();
-  $('width').value = tool.width[tool.current];
-  $('width-val').textContent = tool.width[tool.current];
+  const t = tool.current === 'pick' ? 'stroke' : tool.current;
+  const isFill = t === 'fill';
+  $('width-label').textContent = isFill ? '容差' : '粗細';
+  $('width').max = isFill ? 128 : 120;
+  $('width').min = isFill ? 0 : 1;
+  $('width').value = tool.width[t];
+  $('width-val').textContent = tool.width[t];
+  $('opacity').value = tool.opacity[t];
+  $('opacity-val').textContent = `${tool.opacity[t]}%`;
   $('color').value = tool.color;
   updateStatus();
 }
@@ -736,16 +1075,37 @@ for (const c of SWATCHES) {
   b.className = 'swatch';
   b.style.background = c;
   b.title = c;
-  b.addEventListener('click', () => { tool.color = c; setTool('stroke'); });
+  b.addEventListener('click', () => { tool.color = c; setTool(tool.current === 'fill' ? 'fill' : 'stroke'); });
   $('swatches').appendChild(b);
 }
 
 $('tool-stroke').addEventListener('click', () => setTool('stroke'));
 $('tool-erase').addEventListener('click', () => setTool('erase'));
+$('more-toggle').addEventListener('click', () => {
+  const open = document.body.classList.toggle('show-more');
+  $('more-toggle').textContent = open ? '收起 ▴' : '更多 ▾';
+});
+$('tool-fill').addEventListener('click', () => setTool('fill'));
+$('tool-pick').addEventListener('click', () => setTool('pick'));
+$('zoom-in').addEventListener('click', () => zoomCenter(1.25));
+$('zoom-out').addEventListener('click', () => zoomCenter(0.8));
+$('zoom-reset').addEventListener('click', resetView);
+$('opacity').addEventListener('input', (e) => {
+  const t = tool.current === 'pick' ? 'stroke' : tool.current;
+  tool.opacity[t] = Number(e.target.value);
+  $('opacity-val').textContent = `${e.target.value}%`;
+});
+$('stabilizer').addEventListener('input', (e) => {
+  tool.stabilizer = Number(e.target.value);
+  $('stabilizer-val').textContent = e.target.value;
+});
 $('undo').addEventListener('click', undo);
-$('color').addEventListener('input', (e) => { tool.color = e.target.value.toLowerCase(); setTool('stroke'); });
+$('color').addEventListener('input', (e) => {
+  tool.color = e.target.value.toLowerCase();
+  if (tool.current !== 'fill') setTool('stroke'); else updateUI();
+});
 $('width').addEventListener('input', (e) => {
-  tool.width[tool.current] = Number(e.target.value);
+  tool.width[tool.current === 'pick' ? 'stroke' : tool.current] = Number(e.target.value);
   $('width-val').textContent = e.target.value;
 });
 $('prompt').addEventListener('input', (e) => {
@@ -793,22 +1153,32 @@ document.addEventListener('keydown', (e) => {
   if (e.target.matches('input, select, textarea')) return;
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.key === 'b' || e.key === 'B') setTool('stroke');
-  else if (e.key === 'e' || e.key === 'E') setTool('erase');
+  const key = e.key.toLowerCase();
+  if (key === ' ') { spaceDown = true; main.classList.add('panning'); e.preventDefault(); }
+  else if (key === 'b') setTool('stroke');
+  else if (key === 'e') setTool('erase');
+  else if (key === 'g') setTool('fill');
+  else if (key === 'i') setTool('pick');
+  else if (key === '0') resetView();
+  else if (key === '=' || key === '+') zoomCenter(1.25);
+  else if (key === '-') zoomCenter(0.8);
   else if (e.key >= '1' && e.key <= String(STAGES.length)) setStage(STAGES[Number(e.key) - 1][0]);
+});
+
+document.addEventListener('keyup', (e) => {
+  if (e.key === ' ') { spaceDown = false; if (!gesture) main.classList.remove('panning'); }
 });
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveMeta(); });
 
-// 讓畫布以正方形塞滿可用空間（內部解析度固定）
-const main = document.querySelector('main');
-function fitCanvas() {
-  const size = Math.max(100, Math.floor(Math.min(main.clientWidth, main.clientHeight) - 16));
-  canvas.style.width = `${size}px`;
-  canvas.style.height = `${size}px`;
+// 視窗大小改變時：還沒縮放就重新置中，縮放過就維持
+function onResize() {
+  if (view.scale === 1) return resetView();
+  view.fit = Math.max(100, Math.floor(Math.min(main.clientWidth, main.clientHeight) - 16));
+  applyView();
 }
-if ('ResizeObserver' in window) new ResizeObserver(fitCanvas).observe(main);
-else window.addEventListener('resize', fitCanvas);
+if ('ResizeObserver' in window) new ResizeObserver(onResize).observe(main);
+else window.addEventListener('resize', onResize);
 
 // ---------------------------------------------------------------------------
 // 啟動：有暫存就接著畫
@@ -830,7 +1200,7 @@ async function init() {
   }
   session = restored || newSession();
   loadSessionState();
-  fitCanvas();
+  resetView();
   if (!restored) saveMeta();
 }
 
