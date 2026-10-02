@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>draw-reasoning 畫板</title>
+<style>
+  :root {
+    --bg: #f4f4f5; --panel: #ffffff; --fg: #18181b; --muted: #71717a;
+    --line: #d4d4d8; --accent: #2563eb; --accent-fg: #ffffff; --warn: #b45309;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font: 14px/1.4 system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; }
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 8px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left)); }
+  .group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  button, .button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; color: var(--fg); cursor: pointer; touch-action: manipulation; text-decoration: none;
+    display: inline-block; }
+  button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  button:disabled { opacity: .4; cursor: default; }
+  .swatch { width: 24px; height: 24px; padding: 0; border-radius: 50%; }
+  input[type=color] { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px;
+    background: none; }
+  input[type=range] { width: 110px; }
+  input[type=number] { width: 56px; }
+  input[type=text], input[type=number], select { font: inherit; padding: 5px 8px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; color: var(--fg); -webkit-user-select: text; user-select: text; }
+  #note { flex: 1 1 200px; min-width: 160px; }
+  #width-val { min-width: 2.5em; text-align: right; font-variant-numeric: tabular-nums; }
+  #status { width: 100%; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  #status .warn { color: var(--warn); }
+  main { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px; }
+  #canvas { display: block; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); touch-action: none; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; padding: 16px; max-width: min(420px, 92vw); }
+  dialog::backdrop { background: rgba(0, 0, 0, .35); }
+  dialog h2 { margin: 0 0 10px; font-size: 16px; }
+  dialog .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  dialog .row label { min-width: 4em; }
+  dialog .row input[type=text] { flex: 1; }
+  #export-msg { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header id="toolbar">
+  <div class="group">
+    <button id="tool-stroke" data-tool="stroke" title="筆刷（B）">筆刷</button>
+    <button id="tool-erase" data-tool="erase" title="橡皮擦（E）">橡皮擦</button>
+    <button id="undo" title="復原（Ctrl/⌘ + Z）">復原</button>
+  </div>
+  <div class="group">
+    <input type="color" id="color" value="#222222" title="顏色">
+    <span id="swatches" class="group"></span>
+  </div>
+  <label class="group">粗細 <input type="range" id="width" min="1" max="120" step="1"><span id="width-val"></span></label>
+  <div class="group" id="stages"></div>
+  <input type="text" id="note" placeholder="這個階段打算畫什麼（選填）" autocomplete="off">
+  <div class="group">
+    <label class="group">每 <input type="number" id="snap-every" min="1" step="1"> 筆截圖</label>
+    <label class="group"><input type="checkbox" id="pen-only"> 只用觸控筆</label>
+  </div>
+  <div class="group">
+    <button id="export">匯出</button>
+    <button id="new-session">新畫布</button>
+  </div>
+  <div id="status"></div>
+</header>
+<main><canvas id="canvas"></canvas></main>
+
+<dialog id="export-dialog">
+  <h2>匯出</h2>
+  <div class="row">
+    <label for="author">作者</label>
+    <input type="text" id="author" placeholder="選填" autocomplete="off">
+  </div>
+  <div class="row">
+    <label for="consent">授權</label>
+    <select id="consent">
+      <option value="self">自己的作品</option>
+      <option value="permission">已取得作者同意</option>
+    </select>
+  </div>
+  <p id="export-msg">準備中…</p>
+  <div class="row">
+    <a id="dl-json" class="button" hidden>下載 session.json</a>
+    <a id="dl-zip" class="button" hidden>下載截圖 zip</a>
+  </div>
+  <div class="row"><button id="export-close">關閉</button></div>
+</dialog>
+
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------------
+// 常數與格式
+// ---------------------------------------------------------------------------
+const FORMAT = 'draw-reasoning/session';
+const FORMAT_VERSION = 1;
+const CANVAS_SIZE = 1024;
+const BACKGROUND = '#ffffff';
+const STAGES = [['sketch', '草稿'], ['lineart', '線稿'], ['color', '上色'], ['shading', '陰影']];
+const XY_DIGITS = 4;        // 座標：小數 4 位（1024 畫布約 0.1px）
+const PRESSURE_DIGITS = 3;  // 壓力：小數 3 位
+const WIDTH_DIGITS = 4;     // 粗細：以畫布寬度為 1
+const SWATCHES = ['#222222', '#9e9e9e', '#ffffff', '#e53935', '#fb8c00', '#fdd835',
+                  '#43a047', '#1e88e5', '#8e24aa', '#8d6e63', '#ffcc80'];
+const DB_NAME = 'draw-reasoning-recorder';
+
+const $ = (id) => document.getElementById(id);
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d');
+
+const round = (v, digits) => { const m = 10 ** digits; return Math.round(v * m) / m; };
+const pad6 = (n) => String(n).padStart(6, '0');
+
+// ---------------------------------------------------------------------------
+// 繪圖規則：tools/canvas_replay.py 必須與這裡一致
+//   - 每個動作先在第一點畫一個圓點（直徑 = 該點線寬），再把相鄰兩點連成圓頭線段
+//   - 線段線寬 = width * 畫布寬 * 兩端壓力係數的平均
+//   - 壓力係數：pen 為 0.15 + 0.85 * pressure，其餘（滑鼠、觸控）固定為 1
+//   - erase 用背景色畫
+// ---------------------------------------------------------------------------
+function pressureFactor(pressure, pointer) {
+  if (pointer !== 'pen') return 1;
+  return 0.15 + 0.85 * Math.min(Math.max(pressure, 0), 1);
+}
+
+function actionColor(action) {
+  return action.type === 'erase' ? session.canvas.background : action.color;
+}
+
+function drawDot(c, action, p) {
+  const r = action.width * c.canvas.width * pressureFactor(p[2], action.pointer) / 2;
+  c.fillStyle = actionColor(action);
+  c.beginPath();
+  c.arc(p[0] * c.canvas.width, p[1] * c.canvas.height, r, 0, Math.PI * 2);
+  c.fill();
+}
+
+function drawSegment(c, action, p0, p1) {
+  const f = (pressureFactor(p0[2], action.pointer) + pressureFactor(p1[2], action.pointer)) / 2;
+  c.strokeStyle = actionColor(action);
+  c.lineWidth = action.width * c.canvas.width * f;
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(p0[0] * c.canvas.width, p0[1] * c.canvas.height);
+  c.lineTo(p1[0] * c.canvas.width, p1[1] * c.canvas.height);
+  c.stroke();
+}
+
+function drawAction(c, action) {
+  const pts = action.points;
+  if (!pts.length) return;
+  drawDot(c, action, pts[0]);
+  for (let i = 1; i < pts.length; i++) drawSegment(c, action, pts[i - 1], pts[i]);
+}
+
+function redraw() {
+  ctx.fillStyle = session.canvas.background;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (const a of session.actions) {
+    if (a.type !== 'undo' && !undone.has(a.id)) drawAction(ctx, a);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 暫存（IndexedDB；不支援時退回記憶體，重新整理會遺失）
+// ---------------------------------------------------------------------------
+let db = null;
+const memBlobs = new Map();
+let persistError = null;
+
+function openDB() {
+  return new Promise((resolve) => {
+    if (!('indexedDB' in window)) return resolve(null);
+    let req;
+    try { req = indexedDB.open(DB_NAME, 1); } catch (e) { return resolve(null); }
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      d.createObjectStore('meta');
+      d.createObjectStore('actions', { keyPath: 'id' });
+      d.createObjectStore('blobs');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+    req.onblocked = () => resolve(null);
+  });
+}
+
+function idb(storeName, mode, fn) {
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(storeName, mode);
+    const req = fn(t.objectStore(storeName));
+    t.oncomplete = () => resolve(req ? req.result : undefined);
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+  });
+}
+
+function reportPersist(err) {
+  persistError = err && err.message ? err.message : String(err);
+  console.error(err);
+  updateStatus();
+}
+
+function saveMeta() {
+  if (!db) return Promise.resolve();
+  const { actions, ...meta } = session;
+  return idb('meta', 'readwrite', (s) => s.put(meta, 'session')).catch(reportPersist);
+}
+
+function saveAction(action) {
+  if (!db) return Promise.resolve();
+  return idb('actions', 'readwrite', (s) => s.put(action)).catch(reportPersist);
+}
+
+function saveBlob(file, blob) {
+  if (!db) { memBlobs.set(file, blob); return Promise.resolve(); }
+  return idb('blobs', 'readwrite', (s) => s.put(blob, file));
+}
+
+function getBlob(file) {
+  if (!db) return Promise.resolve(memBlobs.get(file));
+  return idb('blobs', 'readonly', (s) => s.get(file));
+}
+
+async function clearStorage() {
+  memBlobs.clear();
+  if (!db) return;
+  for (const name of ['meta', 'actions', 'blobs']) {
+    await idb(name, 'readwrite', (s) => s.clear()).catch(reportPersist);
+  }
+}
+
+let metaTimer = 0;
+function saveMetaSoon() {
+  clearTimeout(metaTimer);
+  metaTimer = setTimeout(saveMeta, 400);
+}
+
+// ---------------------------------------------------------------------------
+// Session 狀態
+// ---------------------------------------------------------------------------
+let session = null;
+let undone = new Set();       // 已被 undo 的動作 id
+let snapIds = new Set();      // 已有截圖的 after_action_id
+let t0 = 0;                   // session 開始時間（epoch 毫秒）
+let currentStage = 'sketch';
+let sinceSnap = 0;            // 距離上一張截圖的動作數
+const pendingSnaps = new Map();
+const canvasPool = [];
+
+const tool = { current: 'stroke', width: { stroke: 4, erase: 24 }, color: '#222222' };
+let penOnly = false;
+
+function makeSessionId(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  const rand = Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-` +
+         `${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${rand}`;
+}
+
+function newSession() {
+  const now = new Date();
+  return {
+    format: FORMAT,
+    version: FORMAT_VERSION,
+    session_id: makeSessionId(now),
+    created_at: now.toISOString(),
+    canvas: { width: CANVAS_SIZE, height: CANVAS_SIZE, background: BACKGROUND },
+    source: { kind: 'recorder', author: '', consent: 'self' },
+    settings: { snapshot_every: 1 },
+    stages: STAGES.map((s) => s[0]),
+    stage_events: [{ after_action_id: 0, stage: 'sketch', note: '' }],
+    snapshots: [],
+    actions: [],
+  };
+}
+
+function loadSessionState() {
+  t0 = Date.parse(session.created_at);
+  canvas.width = session.canvas.width;
+  canvas.height = session.canvas.height;
+  undone = new Set(session.actions.filter((a) => a.type === 'undo').map((a) => a.target_id));
+  snapIds = new Set(session.snapshots.map((s) => s.after_action_id));
+  const lastEvent = session.stage_events[session.stage_events.length - 1];
+  currentStage = lastEvent ? lastEvent.stage : 'sketch';
+  const lastSnap = session.snapshots.length ? session.snapshots[session.snapshots.length - 1].after_action_id : 0;
+  sinceSnap = session.actions.filter((a) => a.id > lastSnap).length;
+  $('note').value = lastEvent ? lastEvent.note : '';
+  $('snap-every').value = session.settings.snapshot_every;
+  redraw();
+  updateUI();
+}
+
+const lastActionId = () => (session.actions.length ? session.actions[session.actions.length - 1].id : 0);
+
+function lastEffectiveAction() {
+  for (let i = session.actions.length - 1; i >= 0; i--) {
+    const a = session.actions[i];
+    if (a.type !== 'undo' && !undone.has(a.id)) return a;
+  }
+  return null;
+}
+
+function epochOf(ev) {
+  const origin = performance.timeOrigin || (Date.now() - performance.now());
+  return origin + ev.timeStamp;
+}
+
+const nowT = () => Math.max(0, Math.round(Date.now() - t0));
+
+// ---------------------------------------------------------------------------
+// 記錄動作與截圖
+// ---------------------------------------------------------------------------
+function commitAction(fields) {
+  // 欄位順序固定，方便閱讀 session.json
+  const action = {
+    id: lastActionId() + 1,
+    type: fields.type,
+    points: fields.points,
+    color: fields.color,
+    width: fields.width,
+    target_id: fields.target_id,
+    stage: fields.stage,
+    pointer: fields.pointer,
+    t: fields.t,
+  };
+  session.actions.push(action);
+  saveAction(action);
+  saveMeta();
+  sinceSnap++;
+  if (sinceSnap >= session.settings.snapshot_every) takeSnapshot('auto');
+  updateUI();
+  return action;
+}
+
+function takeSnapshot(reason) {
+  const last = session.actions[session.actions.length - 1];
+  if (!last) return Promise.resolve();
+  const id = last.id;
+  if (pendingSnaps.has(id)) return pendingSnaps.get(id);
+  if (snapIds.has(id)) return Promise.resolve();
+  sinceSnap = 0;
+
+  // 先同步複製目前畫布，確保截圖對應的正好是 after_action_id 之後的狀態
+  const copy = canvasPool.pop() || document.createElement('canvas');
+  copy.width = canvas.width;
+  copy.height = canvas.height;
+  copy.getContext('2d').drawImage(canvas, 0, 0);
+
+  const file = `snapshots/${pad6(id)}.png`;
+  const entry = { file, after_action_id: id, stage: last.stage, reason };
+  const p = new Promise((resolve) => copy.toBlob(resolve, 'image/png'))
+    .then(async (blob) => {
+      canvasPool.push(copy);
+      if (!blob) throw new Error('畫布轉 PNG 失敗');
+      await saveBlob(file, blob);
+      session.snapshots.push(entry);
+      session.snapshots.sort((a, b) => a.after_action_id - b.after_action_id);
+      snapIds.add(id);
+      await saveMeta();
+    })
+    .catch(reportPersist)
+    .finally(() => { pendingSnaps.delete(id); updateStatus(); });
+  pendingSnaps.set(id, p);
+  updateStatus();
+  return p;
+}
+
+function undo() {
+  if (active) return;
+  const target = lastEffectiveAction();
+  if (!target) return;
+  undone.add(target.id);
+  redraw();
+  commitAction({ type: 'undo', points: [], color: null, width: null, target_id: target.id,
+                 stage: currentStage, pointer: null, t: nowT() });
+}
+
+function setStage(stage) {
+  if (stage === currentStage || active) return;
+  takeSnapshot('stage_change');
+  const lastId = lastActionId();
+  const ev = session.stage_events[session.stage_events.length - 1];
+  if (ev && ev.after_action_id === lastId) {
+    // 中間沒有任何動作就再切換：合併成一筆
+    ev.stage = stage;
+    ev.note = '';
+  } else {
+    session.stage_events.push({ after_action_id: lastId, stage, note: '' });
+  }
+  currentStage = stage;
+  $('note').value = '';
+  saveMeta();
+  updateUI();
+}
+
+// ---------------------------------------------------------------------------
+// 指標輸入（滑鼠、觸控、觸控筆）
+// ---------------------------------------------------------------------------
+let active = null;  // { pointerId, rect, draft }
+
+function toPoint(ev, rect) {
+  let pressure = ev.pressure;
+  if (!(pressure >= 0)) pressure = 0.5;
+  return [
+    round((ev.clientX - rect.left) / rect.width, XY_DIGITS),
+    round((ev.clientY - rect.top) / rect.height, XY_DIGITS),
+    round(pressure, PRESSURE_DIGITS),
+    Math.max(0, Math.round(epochOf(ev) - t0)),
+  ];
+}
+
+function pushPoint(ev) {
+  const p = toPoint(ev, active.rect);
+  const pts = active.draft.points;
+  const prev = pts[pts.length - 1];
+  if (prev && prev[0] === p[0] && prev[1] === p[1] && prev[2] === p[2]) return;
+  if (prev) drawSegment(ctx, active.draft, prev, p);
+  else drawDot(ctx, active.draft, p);
+  pts.push(p);
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (active) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (penOnly && e.pointerType !== 'pen') return;
+  e.preventDefault();
+  // preventDefault 會讓焦點留在輸入框，快捷鍵就失效了；手機上也順便收起鍵盤
+  if (document.activeElement && document.activeElement.matches('input, select, textarea')) {
+    document.activeElement.blur();
+  }
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* 舊瀏覽器 */ }
+  const type = tool.current;
+  active = {
+    pointerId: e.pointerId,
+    rect: canvas.getBoundingClientRect(),
+    draft: {
+      type,
+      points: [],
+      color: type === 'stroke' ? tool.color : null,
+      width: round(tool.width[type] / canvas.width, WIDTH_DIGITS),
+      target_id: null,
+      stage: currentStage,
+      pointer: e.pointerType || 'mouse',
+      t: 0,
+    },
+  };
+  pushPoint(e);
+  active.draft.t = active.draft.points[0][3];
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (!active || e.pointerId !== active.pointerId) return;
+  e.preventDefault();
+  const coalesced = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  for (const ev of (coalesced.length ? coalesced : [e])) pushPoint(ev);
+});
+
+function finishStroke(e) {
+  if (!active || e.pointerId !== active.pointerId) return;
+  const { draft } = active;
+  active = null;
+  commitAction(draft);
+}
+
+canvas.addEventListener('pointerup', finishStroke);
+canvas.addEventListener('pointercancel', finishStroke);
+canvas.addEventListener('lostpointercapture', finishStroke);
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// ---------------------------------------------------------------------------
+// 匯出：session.json + 截圖 zip（不壓縮，PNG 本身已壓縮）
+// ---------------------------------------------------------------------------
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function dosDateTime(d) {
+  const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  return { time, date };
+}
+
+async function buildZip(snapshots) {
+  const enc = new TextEncoder();
+  const { time, date } = dosDateTime(new Date());
+  const parts = [];
+  const central = [];
+  const included = [];
+  let offset = 0;
+  for (const snap of snapshots) {
+    const blob = await getBlob(snap.file);
+    if (!blob) continue;
+    const data = new Uint8Array(await blob.arrayBuffer());
+    const crc = crc32(data);
+    const name = enc.encode(snap.file);
+
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 10, true);
+    local.setUint16(6, 0x0800, true);
+    local.setUint16(8, 0, true);
+    local.setUint16(10, time, true);
+    local.setUint16(12, date, true);
+    local.setUint32(14, crc, true);
+    local.setUint32(18, data.length, true);
+    local.setUint32(22, data.length, true);
+    local.setUint16(26, name.length, true);
+    local.setUint16(28, 0, true);
+    parts.push(local.buffer, name, blob);
+
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true);
+    cd.setUint16(4, 20, true);
+    cd.setUint16(6, 10, true);
+    cd.setUint16(8, 0x0800, true);
+    cd.setUint16(10, 0, true);
+    cd.setUint16(12, time, true);
+    cd.setUint16(14, date, true);
+    cd.setUint32(16, crc, true);
+    cd.setUint32(20, data.length, true);
+    cd.setUint32(24, data.length, true);
+    cd.setUint16(28, name.length, true);
+    cd.setUint32(42, offset, true);
+    central.push(cd.buffer, name);
+
+    offset += 30 + name.length + data.length;
+    included.push(snap);
+  }
+  let cdSize = 0;
+  for (const c of central) cdSize += c.byteLength;
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, included.length, true);
+  end.setUint16(10, included.length, true);
+  end.setUint32(12, cdSize, true);
+  end.setUint32(16, offset, true);
+  return { blob: new Blob([...parts, ...central, end.buffer], { type: 'application/zip' }), included };
+}
+
+function sessionToJSON(s, snapshots) {
+  // 頂層縮排、動作一行一筆，方便閱讀和 diff
+  const ordered = {
+    format: s.format,
+    version: s.version,
+    session_id: s.session_id,
+    created_at: s.created_at,
+    exported_at: new Date().toISOString(),
+    canvas: s.canvas,
+    source: s.source,
+    settings: s.settings,
+    stages: s.stages,
+    stage_events: s.stage_events,
+    snapshots,
+    actions: s.actions,
+  };
+  const lines = Object.entries(ordered).map(([k, v]) => {
+    if (Array.isArray(v) && ['stage_events', 'snapshots', 'actions'].includes(k)) {
+      if (!v.length) return `  ${JSON.stringify(k)}: []`;
+      return `  ${JSON.stringify(k)}: [\n${v.map((x) => '    ' + JSON.stringify(x)).join(',\n')}\n  ]`;
+    }
+    return `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`;
+  });
+  return '{\n' + lines.join(',\n') + '\n}\n';
+}
+
+const exportState = { urls: [], snapshots: [] };
+
+function setDownload(el, blob, name) {
+  if (el.href) URL.revokeObjectURL(el.href);
+  el.href = URL.createObjectURL(blob);
+  el.download = name;
+  el.hidden = false;
+}
+
+function refreshExportJSON() {
+  const json = sessionToJSON(session, exportState.snapshots);
+  setDownload($('dl-json'), new Blob([json], { type: 'application/json' }), `session_${session.session_id}.json`);
+}
+
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+async function openExport() {
+  if (active) return;
+  const dlg = $('export-dialog');
+  $('author').value = session.source.author || '';
+  $('consent').value = session.source.consent || 'self';
+  $('dl-json').hidden = true;
+  $('dl-zip').hidden = true;
+  $('export-msg').textContent = '準備中…';
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+
+  await takeSnapshot('export');
+  await Promise.all([...pendingSnaps.values()]);
+  const { blob, included } = await buildZip(session.snapshots);
+  exportState.snapshots = included;
+  refreshExportJSON();
+  setDownload($('dl-zip'), blob, `snapshots_${session.session_id}.zip`);
+  const missing = session.snapshots.length - included.length;
+  $('export-msg').textContent =
+    `${session.actions.length} 個動作、${included.length} 張截圖（zip ${formatBytes(blob.size)}）` +
+    (missing ? `；有 ${missing} 張截圖遺失，已從 session.json 排除` : '') +
+    '。兩個檔案都要下載。';
+}
+
+$('export').addEventListener('click', openExport);
+$('export-close').addEventListener('click', () => {
+  const dlg = $('export-dialog');
+  if (dlg.close) dlg.close(); else dlg.removeAttribute('open');
+});
+$('author').addEventListener('input', (e) => {
+  session.source.author = e.target.value.trim();
+  saveMetaSoon();
+  if (!$('dl-json').hidden) refreshExportJSON();
+});
+$('consent').addEventListener('change', (e) => {
+  session.source.consent = e.target.value;
+  saveMeta();
+  if (!$('dl-json').hidden) refreshExportJSON();
+});
+
+// ---------------------------------------------------------------------------
+// 介面
+// ---------------------------------------------------------------------------
+function updateStatus() {
+  if (!session) return;
+  const counts = { stroke: 0, erase: 0, undo: 0 };
+  for (const a of session.actions) counts[a.type]++;
+  const pending = pendingSnaps.size ? `（處理中 ${pendingSnaps.size}）` : '';
+  const store = db ? '已自動暫存' : '<span class="warn">此瀏覽器無法暫存，重新整理會遺失，請記得匯出</span>';
+  const err = persistError ? ` · <span class="warn">暫存錯誤：${persistError}</span>` : '';
+  $('status').innerHTML =
+    `${session.session_id} · 動作 ${session.actions.length}` +
+    `（筆畫 ${counts.stroke}／擦除 ${counts.erase}／復原 ${counts.undo}）` +
+    ` · 截圖 ${session.snapshots.length}${pending} · ${store}${err}`;
+}
+
+function updateUI() {
+  for (const t of ['stroke', 'erase']) $(`tool-${t}`).classList.toggle('active', tool.current === t);
+  for (const b of $('stages').children) b.classList.toggle('active', b.dataset.stage === currentStage);
+  $('undo').disabled = !lastEffectiveAction();
+  $('width').value = tool.width[tool.current];
+  $('width-val').textContent = tool.width[tool.current];
+  $('color').value = tool.color;
+  updateStatus();
+}
+
+function setTool(t) { tool.current = t; updateUI(); }
+
+for (const [stage, label] of STAGES) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.dataset.stage = stage;
+  b.addEventListener('click', () => setStage(stage));
+  $('stages').appendChild(b);
+}
+
+for (const c of SWATCHES) {
+  const b = document.createElement('button');
+  b.className = 'swatch';
+  b.style.background = c;
+  b.title = c;
+  b.addEventListener('click', () => { tool.color = c; setTool('stroke'); });
+  $('swatches').appendChild(b);
+}
+
+$('tool-stroke').addEventListener('click', () => setTool('stroke'));
+$('tool-erase').addEventListener('click', () => setTool('erase'));
+$('undo').addEventListener('click', undo);
+$('color').addEventListener('input', (e) => { tool.color = e.target.value.toLowerCase(); setTool('stroke'); });
+$('width').addEventListener('input', (e) => {
+  tool.width[tool.current] = Number(e.target.value);
+  $('width-val').textContent = e.target.value;
+});
+$('note').addEventListener('input', (e) => {
+  session.stage_events[session.stage_events.length - 1].note = e.target.value;
+  saveMetaSoon();
+});
+$('snap-every').addEventListener('change', (e) => {
+  const n = Math.max(1, Math.floor(Number(e.target.value) || 1));
+  e.target.value = n;
+  session.settings.snapshot_every = n;
+  saveMeta();
+});
+$('pen-only').addEventListener('change', (e) => { penOnly = e.target.checked; });
+
+$('new-session').addEventListener('click', async () => {
+  if (active) return;
+  if (session.actions.length &&
+      !confirm('開新畫布會清掉目前的暫存。確定已經匯出了嗎？')) return;
+  await Promise.all([...pendingSnaps.values()]);
+  await clearStorage();
+  persistError = null;
+  session = newSession();
+  loadSessionState();
+  saveMeta();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, select, textarea')) return;
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'b' || e.key === 'B') setTool('stroke');
+  else if (e.key === 'e' || e.key === 'E') setTool('erase');
+  else if (e.key >= '1' && e.key <= String(STAGES.length)) setStage(STAGES[Number(e.key) - 1][0]);
+});
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveMeta(); });
+
+// 讓畫布以正方形塞滿可用空間（內部解析度固定）
+const main = document.querySelector('main');
+function fitCanvas() {
+  const size = Math.max(100, Math.floor(Math.min(main.clientWidth, main.clientHeight) - 16));
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+}
+if ('ResizeObserver' in window) new ResizeObserver(fitCanvas).observe(main);
+else window.addEventListener('resize', fitCanvas);
+
+// ---------------------------------------------------------------------------
+// 啟動：有暫存就接著畫
+// ---------------------------------------------------------------------------
+async function init() {
+  db = await openDB();
+  let restored = null;
+  if (db) {
+    try {
+      const meta = await idb('meta', 'readonly', (s) => s.get('session'));
+      if (meta && meta.format === FORMAT) {
+        const actions = await idb('actions', 'readonly', (s) => s.getAll());
+        actions.sort((a, b) => a.id - b.id);
+        restored = { ...meta, actions };
+      }
+    } catch (err) {
+      reportPersist(err);
+    }
+  }
+  session = restored || newSession();
+  loadSessionState();
+  fitCanvas();
+  if (!restored) saveMeta();
+}
+
+init();
+</script>
+</body>
+</html>

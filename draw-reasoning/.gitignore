@@ -1,0 +1,13 @@
+# 大型原始資料放 Google Cloud Storage，不進 Git
+data/
+out/
+*.zip
+*.mp4
+*.mov
+*.webm
+!samples/**/*.zip
+!samples/**/*.mp4
+
+__pycache__/
+*.pyc
+.venv/
