@@ -13,7 +13,8 @@
   每個階段可以先寫一句規劃；
   同時保留逐筆資料，留給之後的實驗。
 - **修正動作一定要完整記錄**：erase、undo（包括復原漆桶） 是模型學會「推理」的關鍵，任何工具都不會過濾掉它們。
-- **只用自己或取得同意的作品**：每份資料都帶 `author` 和 `consent`（`self`／`permission`）。
+- **只用自己或取得同意的作品**：每份資料都帶 `author` 和 `consent`（`self`／`permission`；
+  開放授權的公開資料集為 `open-license`，並附上 `license` 和出處）。
 - **大型原始資料不進 Git**：影片、截圖 zip 之後放 Google Cloud Storage；repo 只放程式碼和少量樣本。
 
 ## 目錄
@@ -23,16 +24,19 @@ draw-reasoning/
 ├── recorder/index.html        單一 HTML 畫板（零依賴、可離線，手機和電腦都能用）
 ├── tools/
 │   ├── video_to_stages.py     縮時影片 → 去重後的關鍵幀
-│   ├── build_dataset.py       recorder 資料 + 關鍵幀 → dataset.jsonl
+│   ├── quickdraw_to_sessions.py  Quick, Draw!（CC BY 4.0）→ session 分片
+│   ├── build_dataset.py       recorder 資料 + session 分片 + 關鍵幀 → dataset.jsonl
 │   ├── canvas_replay.py       依動作重建畫布（build_dataset 和之後的訓練程式共用）
 │   └── requirements.txt       只有 --render 需要 Pillow
 └── samples/
     ├── recorder/              一份完整 session：Q 版動漫女孩頭像，六個階段，
     │                          含擦除、復原、漆桶、半透明、防手抖、放大作畫、提示詞修改
-    └── video/timelapse.mp4    用上面的截圖合成的 15 秒縮時影片
+    ├── video/timelapse.mp4    用上面的截圖合成的 15 秒縮時影片
+    └── quickdraw/             Quick, Draw! 三類各 4 張（出處見 NOTICE.md）
 ```
 
-樣本都由程式自動產生（Playwright 操作畫板），不涉及任何人的作品。
+recorder 和影片樣本由程式自動產生（Playwright 操作畫板），不涉及任何人的作品；
+Quick, Draw! 樣本來自 Google 的公開資料集（CC BY 4.0）。
 
 ## 端到端快速測試
 
@@ -43,10 +47,11 @@ cd draw-reasoning
 python3 tools/video_to_stages.py samples/video/timelapse.mp4 --out out/keyframes \
     --stage-marks "0:sketch,3.6:lineart,6.4:base,9.2:shading,10.4:highlight,11.2:detail" \
     --prompt "Q版動漫女孩頭像，粉色長髮有光澤、藍色大眼睛，害羞地微笑"
-python3 tools/build_dataset.py --recorder samples/recorder --video out/keyframes --out out/dataset
+python3 tools/build_dataset.py --recorder samples/recorder --video out/keyframes \
+    --sessions samples/quickdraw --out out/dataset
 ```
 
-預期輸出 47 筆：逐筆 34、階段級 6、關鍵幀 7。
+預期輸出 146 筆：逐筆 121、階段級 18、關鍵幀 7。
 
 ---
 
@@ -238,6 +243,8 @@ python3 tools/build_dataset.py \
 
 - `--recorder` 可以給 session json 或它所在的資料夾；截圖 zip（`snapshots_<id>.zip` 或 `snapshots.zip`）
   或解壓後的 `snapshots/` 要在同一個資料夾。可重複。
+- `--sessions` 可以給一行一個 session 的 `.jsonl`／`.jsonl.gz`，或放這些檔案的資料夾
+  （例如 quickdraw_to_sessions.py 的輸出）；`--max-sessions` 可以只取前 N 個來抽樣。可重複。
 - `--video` 可以給 video_to_stages 的輸出資料夾或 `keyframes.json`。可重複。
 - 會檢查 session（id 是否遞增、undo 是否指向存在且還沒被復原的動作等），有問題就印出警告。
 
@@ -248,8 +255,10 @@ out/dataset/
 ├── dataset.jsonl
 ├── images/rec-<session_id>/…png    用到的截圖（--render 時另有 render_*.png）
 ├── images/vid-<ref>/…png
-└── sessions/<session_id>.json      原始 session，replay 時要用
+└── sessions/<session_id>.json      原始 session，replay 時要用（--sessions 的分片原樣複製）
 ```
+
+紀錄是一邊處理一邊寫入檔案，資料量再大也不會佔滿記憶體。
 
 ### dataset.jsonl
 
@@ -293,6 +302,38 @@ out/dataset/
 - `prompt`：逐筆是畫那一筆時有效的版本；階段級是那個階段第一筆時的版本；影片是 `--prompt`。沒有就是 null。
 - 動作的文字說明在 `target.action.caption`。
 - `stage` 沒有標籤時是 `"unknown"`。
+
+---
+
+## 4. tools/quickdraw_to_sessions.py
+
+把 [Quick, Draw!](https://github.com/googlecreativelab/quickdraw-dataset) 轉成 session 格式。
+它有 345 類、約 5000 萬張「一筆一筆畫出來」的塗鴉，可以讓模型先學會「看著畫布一步一步畫」。
+授權是 CC BY 4.0，使用時必須註明出處；每個 session 的 `source.attribution` 都有寫。
+
+```bash
+# 每類 100 張（約 3.5 萬張，壓縮後約 51 MB，一分鐘內完成）
+python3 tools/quickdraw_to_sessions.py --categories all --per-category 100 --workers 12 --out data/quickdraw
+# 指定類別
+python3 tools/quickdraw_to_sessions.py --categories "cat,face,The Eiffel Tower" --out data/quickdraw
+```
+
+- 邊下載邊轉換，原始檔不存到磁碟；每類輸出一個 `<類別>.jsonl.gz`，另有 `manifest.json` 記錄每類張數。
+- 已經完成的類別重跑時會略過，中斷了直接再跑同一個指令就好；網路中斷會自動重試。
+- 每張塗鴉轉成一個 session：每一筆是一個 stroke，座標依外框置中縮放到 0.1～0.9，
+  提示詞是類別名稱（`--prompt "a doodle of a {word}"` 可以改），階段都是 `sketch`。
+- `--variant raw`（預設）保留每個點的時間；`simplified` 檔案小很多，但點的時間是 null。
+- 預設只收遊戲有辨識出來的塗鴉，`--include-unrecognized` 可以全收。
+- 沒有擦除和復原動作，也沒有截圖（`before.image` 都是 null，由 `replay` 還原）。
+
+**完整資料集**：原始檔共 194.8 GB（simplified 24.0 GB），轉換後估計 70～80 GB，
+如果全部展開成 dataset.jsonl 會超過 300 GB。建議在 GCE 上轉換、存到 GCS，
+訓練時直接讀 session 分片，或用 `build_dataset.py --max-sessions` 抽樣：
+
+```bash
+python3 tools/quickdraw_to_sessions.py --categories all --workers 16 --out /mnt/data/quickdraw
+gsutil -m rsync -r /mnt/data/quickdraw gs://<bucket>/draw-reasoning/raw/quickdraw
+```
 
 ---
 

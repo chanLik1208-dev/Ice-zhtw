@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 recorder 匯出的資料和影片關鍵幀統一轉成 dataset.jsonl。
+"""把 recorder 匯出的資料、session 分片（例如 Quick, Draw!）和影片關鍵幀統一轉成 dataset.jsonl。
 
 每一筆是（前一張畫布, 動作或下一張畫布, 階段標籤, 來源）：
   - level "action"   ：recorder 的每個 stroke / erase / undo
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import gzip
 import json
 import shutil
 import sys
@@ -111,52 +112,102 @@ def validate_session(session: dict, label: str) -> list[str]:
 # ---------------------------------------------------------------------------
 # 輸出
 # ---------------------------------------------------------------------------
+# 紀錄 id 的前綴：recorder 用 rec，其他來源（例如 quickdraw）用 qd
+ID_PREFIX = {"recorder": "rec", "quickdraw": "qd"}
+
+
+def iter_session_shards(path: Path):
+    """--sessions 的輸入：一個 .jsonl / .jsonl.gz 檔，或放這些檔案的資料夾。"""
+    files = [path] if path.is_file() else sorted(
+        p for p in path.iterdir() if p.name.endswith((".jsonl", ".jsonl.gz")))
+    if not files:
+        sys.exit(f"{path} 裡沒有 .jsonl 或 .jsonl.gz")
+    return files
+
+
+def read_jsonl(path: Path):
+    opener = gzip.open if path.name.endswith(".gz") else open
+    with opener(path, "rt", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+
 class Builder:
     def __init__(self, out: Path, do_render: bool):
         self.out = out
         self.do_render = do_render
-        self.records: list[dict] = []
+        self.path = out / "dataset.jsonl"
+        self.file = self.path.open("w", encoding="utf-8")
+        self.count = 0
+        self.levels: Counter = Counter()
+        self.types: Counter = Counter()
+        self.pending = 0
+        self.sessions = 0
 
+    # 邊處理邊寫檔，資料量大也不會佔滿記憶體
     def emit(self, record: dict) -> None:
-        self.records.append(record)
+        self.file.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
+        self.count += 1
+        self.levels[record["level"]] += 1
+        if record["level"] == "action":
+            self.types[record["target"]["action"]["type"]] += 1
+        if record["before"]["replay"]:
+            self.pending += 1
 
-    def write(self) -> Path:
-        path = self.out / "dataset.jsonl"
-        with path.open("w", encoding="utf-8") as f:
-            for r in self.records:
-                f.write(json.dumps(r, ensure_ascii=False, separators=(",", ":")) + "\n")
-        return path
+    def close(self) -> Path:
+        self.file.close()
+        return self.path
 
     # -- recorder ------------------------------------------------------------
     def add_recorder(self, path: Path) -> None:
         session_path, store = find_session(path)
         session = json.loads(session_path.read_text(encoding="utf-8"))
         sid = session["session_id"]
+        sessions_dir = self.out / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        session_rel = f"sessions/{sid}.json"
+        shutil.copyfile(session_path, self.out / session_rel)
+        self.add_session(session, store, session_rel)
+
+    # -- 一個檔案裡有很多 session（例如 quickdraw_to_sessions.py 的輸出）-------
+    def add_sessions(self, path: Path, limit: int | None) -> None:
+        sessions_dir = self.out / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        for shard in iter_session_shards(path):
+            session_rel = f"sessions/{shard.name}"
+            shutil.copyfile(shard, self.out / session_rel)
+            for session in read_jsonl(shard):
+                if limit is not None and self.sessions >= limit:
+                    return
+                self.add_session(session, SnapshotStore(None), session_rel, quiet=True)
+
+    def add_session(self, session: dict, store: SnapshotStore, session_rel: str, quiet: bool = False) -> None:
+        self.sessions += 1
+        sid = session["session_id"]
         for item in session["actions"] + session.get("stage_events", []) + session.get("snapshots", []):
             if item.get("stage") in STAGE_ALIASES:
                 item["stage"] = STAGE_ALIASES[item["stage"]]
         validate_session(session, sid)
 
-        prefix = f"rec-{sid}"
-        image_dir = self.out / "images" / prefix
-        image_dir.mkdir(parents=True, exist_ok=True)
-        sessions_dir = self.out / "sessions"
-        sessions_dir.mkdir(parents=True, exist_ok=True)
-        session_rel = f"sessions/{sid}.json"
-        shutil.copyfile(session_path, self.out / session_rel)
-
         src = session.get("source", {})
+        kind = src.get("kind", "recorder")
+        tag = ID_PREFIX.get(kind, kind)
+        prefix = f"{tag}-{sid}"
+        image_dir = self.out / "images" / prefix
         source = {
-            "kind": "recorder",
+            "kind": kind,
             "ref": sid,
             "author": src.get("author", ""),
             "consent": src.get("consent", ""),
             "session_file": session_rel,
         }
+        if src.get("license"):
+            source["license"] = src["license"]
         actions = session["actions"]
         effective = effective_after(actions)
         prompt_events = session.get("prompt_events", [])
-        if not any(e.get("prompt", "").strip() for e in prompt_events):
+        if not quiet and not any(e.get("prompt", "").strip() for e in prompt_events):
             print(f"[{sid}] 注意：沒有提示詞", file=sys.stderr)
 
         def prompt_at(action_id: int) -> str | None:
@@ -178,6 +229,7 @@ class Builder:
 
         def snapshot_path(after_id: int) -> str:
             if after_id not in copied:
+                image_dir.mkdir(parents=True, exist_ok=True)
                 name = Path(snapshots[after_id]).name
                 (image_dir / name).write_bytes(store.read(snapshots[after_id]))
                 copied[after_id] = f"images/{prefix}/{name}"
@@ -206,6 +258,7 @@ class Builder:
                     from PIL import Image
                     base = Image.open(BytesIO(store.read(snapshots[base_id])))
                 name = f"render_{after_id:06d}.png"
+                image_dir.mkdir(parents=True, exist_ok=True)
                 render(session, replay, base).save(image_dir / name)
                 rendered[after_id] = {"image": f"images/{prefix}/{name}", "replay": [], "rendered": True}
             return rendered[after_id]
@@ -214,7 +267,7 @@ class Builder:
         prev_id = 0
         for a in actions:
             self.emit({
-                "id": f"rec/{sid}/a{a['id']:06d}",
+                "id": f"{tag}/{sid}/a{a['id']:06d}",
                 "level": "action",
                 "source": source,
                 "stage": a.get("stage") or "unknown",
@@ -242,7 +295,7 @@ class Builder:
                 note = None
             after = canvas_ref(last)
             self.emit({
-                "id": f"rec/{sid}/s{k + 1:02d}",
+                "id": f"{tag}/{sid}/s{k + 1:02d}",
                 "level": "stage",
                 "source": source,
                 "stage": stage,
@@ -293,9 +346,13 @@ class Builder:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="把 recorder 資料和影片關鍵幀轉成 dataset.jsonl")
+    ap = argparse.ArgumentParser(description="把 recorder 資料、session 分片和影片關鍵幀轉成 dataset.jsonl")
     ap.add_argument("--recorder", type=Path, action="append", default=[],
                     help="session_*.json 或放它的資料夾（截圖 zip 要在同一個資料夾）；可重複")
+    ap.add_argument("--sessions", type=Path, action="append", default=[],
+                    help="一行一個 session 的 .jsonl / .jsonl.gz，或放這些檔案的資料夾"
+                         "（例如 quickdraw_to_sessions.py 的輸出）；可重複")
+    ap.add_argument("--max-sessions", type=int, help="--sessions 最多讀幾個 session（抽樣用）")
     ap.add_argument("--video", type=Path, action="append", default=[],
                     help="video_to_stages.py 的輸出資料夾或 keyframes.json；可重複")
     ap.add_argument("--out", type=Path, required=True, help="輸出資料夾")
@@ -303,8 +360,8 @@ def main() -> None:
                     help="replay 不為空的畫布用 Pillow 畫成 PNG（需要 Pillow）")
     args = ap.parse_args()
 
-    if not args.recorder and not args.video:
-        sys.exit("至少要給一個 --recorder 或 --video")
+    if not args.recorder and not args.sessions and not args.video:
+        sys.exit("至少要給一個 --recorder、--sessions 或 --video")
     if args.render:
         try:
             import PIL  # noqa: F401
@@ -315,18 +372,17 @@ def main() -> None:
     builder = Builder(args.out, args.render)
     for p in args.recorder:
         builder.add_recorder(p)
+    for p in args.sessions:
+        builder.add_sessions(p, args.max_sessions)
     for p in args.video:
         builder.add_video(p)
-    path = builder.write()
+    path = builder.close()
 
-    levels = Counter(r["level"] for r in builder.records)
-    types = Counter(r["target"]["action"]["type"] for r in builder.records if r["level"] == "action")
-    pending = sum(1 for r in builder.records if r["before"]["replay"])
-    print(f"寫出 {len(builder.records)} 筆到 {path}")
-    print("  依層級：" + "、".join(f"{k} {v}" for k, v in sorted(levels.items())))
-    if types:
-        print("  逐筆動作：" + "、".join(f"{k} {v}" for k, v in sorted(types.items())))
-    print(f"  需要重播才能還原「前一張畫布」的紀錄：{pending}")
+    print(f"寫出 {builder.count} 筆到 {path}（session {builder.sessions} 份）")
+    print("  依層級：" + "、".join(f"{k} {v}" for k, v in sorted(builder.levels.items())))
+    if builder.types:
+        print("  逐筆動作：" + "、".join(f"{k} {v}" for k, v in sorted(builder.types.items())))
+    print(f"  需要重播才能還原「前一張畫布」的紀錄：{builder.pending}")
 
 
 if __name__ == "__main__":
